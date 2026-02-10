@@ -1,20 +1,36 @@
-import { createRxNostr, createRxForwardReq, createRxBackwardReq, type EventPacket } from 'rx-nostr';
+import {
+  createRxNostr,
+  createRxForwardReq,
+  createRxBackwardReq,
+  type EventPacket,
+} from 'rx-nostr';
 import { verifier } from 'rx-nostr-crypto';
 import type { NostrEvent } from '../../types/nostr';
+import type { Subscription } from 'rxjs';
 
 // Create RxNostr instance with Aggressive connection strategy
-export const rxNostr = createRxNostr({ 
+export const rxNostr = createRxNostr({
   verifier,
-  connectionStrategy: 'aggressive'
+  connectionStrategy: 'aggressive',
 });
 
+let connectionStateSubscription: Subscription | null = null;
+
 // Initialize with relays
-export function initializeRelays(relays: string[], onConnectionChange?: (relay: string, connected: boolean) => void) {
+export function initializeRelays(
+  relays: string[],
+  onConnectionChange?: (relay: string, connected: boolean) => void
+) {
   rxNostr.setDefaultRelays(relays);
-  
+
+  // Clean up existing subscription
+  if (connectionStateSubscription) {
+    connectionStateSubscription.unsubscribe();
+  }
+
   // Subscribe to connection state changes if callback provided
   if (onConnectionChange) {
-    rxNostr.createConnectionStateObservable().subscribe((packet) => {
+    connectionStateSubscription = rxNostr.createConnectionStateObservable().subscribe((packet) => {
       console.log('Connection state packet:', packet);
       // According to rx-nostr docs, packet.state is the connection state string
       // We need to check all relays
@@ -54,7 +70,7 @@ export async function publishEvent(event: NostrEvent): Promise<void> {
 export function subscribeToEvents(filters: any[]) {
   const req = createRxForwardReq();
   const observable = rxNostr.use(req);
-  
+
   return { observable, req };
 }
 
@@ -62,7 +78,7 @@ export function subscribeToEvents(filters: any[]) {
 export function fetchPastEvents(filters: any[]) {
   const req = createRxBackwardReq();
   const observable = rxNostr.use(req);
-  
+
   return { observable, req };
 }
 
@@ -74,13 +90,17 @@ export function getUserBadgeDefinitions(pubkey: string) {
       authors: [pubkey],
     },
   ];
-  
+
   const { observable, req } = fetchPastEvents(filters);
-  
+
   return { observable, req, filters };
 }
 
 // Cleanup
 export function cleanup() {
+  if (connectionStateSubscription) {
+    connectionStateSubscription.unsubscribe();
+    connectionStateSubscription = null;
+  }
   rxNostr.dispose();
 }

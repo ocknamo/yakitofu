@@ -1,9 +1,8 @@
 <script lang="ts">
   import { authStore } from '../stores/auth';
-  import { relayStore } from '../stores/relay';
   import { t } from '../stores/i18n';
   import { isValidBadgeId, isValidUrl } from '../utils/validation';
-  import { publishEvent, initializeRelays } from '../services/nostr';
+  import { publishEvent } from '../services/nostr';
   import ImagePreview from './ImagePreview.svelte';
   import type { NostrEvent } from '../../types/nostr';
 
@@ -14,13 +13,6 @@
   let submitting = $state(false);
   let message = $state('');
   let messageType: 'success' | 'error' = $state('success');
-
-  // Initialize relays when component mounts
-  $effect(() => {
-    initializeRelays($relayStore.relays, (relay, connected) => {
-      relayStore.setConnected(relay, connected);
-    });
-  });
 
   async function handleSubmit(e: Event) {
     e.preventDefault();

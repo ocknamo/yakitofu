@@ -118,7 +118,7 @@ export function npubToHex(npub: string): string {
 export function hexToNpub(hex: string): string {
   const bytes: number[] = [];
   for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.substr(i, 2), 16));
+    bytes.push(parseInt(hex.substring(i, i + 2), 16));
   }
   
   const data = convertBits(bytes, 8, 5, true);

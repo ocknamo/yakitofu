@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { authStore } from '../stores/auth';
-  import { relayStore } from '../stores/relay';
   import { t } from '../stores/i18n';
   import { isValidNpub } from '../utils/validation';
   import { npubToHex } from '../utils/npubConverter';
-  import { publishEvent, getUserBadgeDefinitions, initializeRelays } from '../services/nostr';
+  import { publishEvent, getUserBadgeDefinitions } from '../services/nostr';
   import type { NostrEvent } from '../../types/nostr';
+  import type { Subscription } from 'rxjs';
 
   interface BadgeDefinition {
     id: string;
@@ -22,13 +22,7 @@
   let loading = $state(false);
   let message = $state('');
   let messageType: 'success' | 'error' = $state('success');
-
-  // Initialize relays when component mounts
-  $effect(() => {
-    initializeRelays($relayStore.relays, (relay, connected) => {
-      relayStore.setConnected(relay, connected);
-    });
-  });
+  let badgeSubscription: Subscription | null = null;
 
   // Load user's badges when logged in
   $effect(() => {
@@ -36,37 +30,57 @@
       loadBadges();
     } else {
       badges = [];
+      if (badgeSubscription) {
+        badgeSubscription.unsubscribe();
+        badgeSubscription = null;
+      }
+    }
+  });
+
+  // Cleanup on component destroy
+  onDestroy(() => {
+    if (badgeSubscription) {
+      badgeSubscription.unsubscribe();
     }
   });
 
   async function loadBadges() {
     if (!$authStore.pubkey) return;
 
+    // Cleanup previous subscription
+    if (badgeSubscription) {
+      badgeSubscription.unsubscribe();
+    }
+
     loading = true;
     badges = [];
 
     try {
       const { observable, req, filters } = getUserBadgeDefinitions($authStore.pubkey);
-      
+
       // Subscribe first, then emit
-      observable.subscribe({
+      badgeSubscription = observable.subscribe({
         next: (packet: any) => {
           const event = packet.event;
-          const dTag = event.tags.find((t: any) => t[0] === 'd')?.[1] || '';
-          const name = event.tags.find((t: any) => t[0] === 'name')?.[1] || dTag;
-          const description = event.tags.find((t: any) => t[0] === 'description')?.[1] || '';
+          const dTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1] || '';
+          const name = event.tags.find((t: string[]) => t[0] === 'name')?.[1] || dTag;
+          const description =
+            event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
 
           // Check if badge already exists in list
-          if (!badges.some(b => b.dTag === dTag)) {
-            badges = [...badges, {
-              id: event.id || '',
-              name,
-              description,
-              dTag,
-            }];
+          if (!badges.some((b) => b.dTag === dTag)) {
+            badges = [
+              ...badges,
+              {
+                id: event.id || '',
+                name,
+                description,
+                dTag,
+              },
+            ];
           }
         },
-        error: (error: any) => {
+        error: (error: Error) => {
           console.error('Error loading badges:', error);
           loading = false;
         },
@@ -75,7 +89,7 @@
           loading = false;
         },
       });
-      
+
       // Emit the request after subscribing
       req.emit(filters);
 
@@ -83,7 +97,7 @@
       setTimeout(() => {
         loading = false;
       }, 3000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to load badges:', error);
       loading = false;
     }

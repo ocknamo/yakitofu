@@ -22,7 +22,12 @@
         "useLiteralKeys": "off"
       },
       "correctness": {
-        "useImportExtensions": "off"
+        "useImportExtensions": "off",
+        "noUnusedImports": "off",
+        "noUnusedVariables": "off"
+      },
+      "style": {
+        "useConst": "off"
       }
     }
   },

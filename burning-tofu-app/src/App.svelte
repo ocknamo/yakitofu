@@ -5,11 +5,20 @@ import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
 import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
 import LoginButton from './lib/components/LoginButton.svelte';
 import RelaySettings from './lib/components/RelaySettings.svelte';
+import { initializeRelays } from './lib/services/nostr';
 import { authStore } from './lib/stores/auth';
 import { t } from './lib/stores/i18n';
+import { relayStore } from './lib/stores/relay';
 
 type Tab = 'create' | 'award' | 'relay';
-const activeTab: Tab = $state('create');
+let activeTab: Tab = $state('create');
+
+// Initialize relays when relay settings change
+$effect(() => {
+  initializeRelays($relayStore.relays, (relay: string, connected: boolean) => {
+    relayStore.setConnected(relay, connected);
+  });
+});
 
 onMount(() => {
   // Check for window.nostr after a short delay to ensure extension is loaded
