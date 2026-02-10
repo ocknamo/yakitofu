@@ -17,7 +17,9 @@
 
   // Initialize relays when component mounts
   $effect(() => {
-    initializeRelays($relayStore.relays);
+    initializeRelays($relayStore.relays, (relay, connected) => {
+      relayStore.setConnected(relay, connected);
+    });
   });
 
   async function handleSubmit(e: Event) {

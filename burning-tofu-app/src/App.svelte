@@ -1,22 +1,22 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { authStore } from './lib/stores/auth';
-  import { t } from './lib/stores/i18n';
-  import LoginButton from './lib/components/LoginButton.svelte';
-  import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
-  import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
-  import BadgeAwardForm from './lib/components/BadgeAwardForm.svelte';
-  import RelaySettings from './lib/components/RelaySettings.svelte';
+import { onMount } from 'svelte';
+import BadgeAwardForm from './lib/components/BadgeAwardForm.svelte';
+import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
+import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
+import LoginButton from './lib/components/LoginButton.svelte';
+import RelaySettings from './lib/components/RelaySettings.svelte';
+import { authStore } from './lib/stores/auth';
+import { t } from './lib/stores/i18n';
 
-  type Tab = 'create' | 'award' | 'relay';
-  let activeTab: Tab = $state('create');
+type Tab = 'create' | 'award' | 'relay';
+const activeTab: Tab = $state('create');
 
-  onMount(() => {
-    // Check for window.nostr after a short delay to ensure extension is loaded
-    setTimeout(() => {
-      authStore.checkExtension();
-    }, 100);
-  });
+onMount(() => {
+  // Check for window.nostr after a short delay to ensure extension is loaded
+  setTimeout(() => {
+    authStore.checkExtension();
+  }, 100);
+});
 </script>
 
 <main>

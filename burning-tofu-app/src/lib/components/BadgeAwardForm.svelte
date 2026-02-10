@@ -25,7 +25,9 @@
 
   // Initialize relays when component mounts
   $effect(() => {
-    initializeRelays($relayStore.relays);
+    initializeRelays($relayStore.relays, (relay, connected) => {
+      relayStore.setConnected(relay, connected);
+    });
   });
 
   // Load user's badges when logged in
@@ -44,14 +46,15 @@
     badges = [];
 
     try {
-      const subscription = getUserBadgeDefinitions($authStore.pubkey);
+      const { observable, req, filters } = getUserBadgeDefinitions($authStore.pubkey);
       
-      subscription.subscribe({
-        next: (packet) => {
+      // Subscribe first, then emit
+      observable.subscribe({
+        next: (packet: any) => {
           const event = packet.event;
-          const dTag = event.tags.find(t => t[0] === 'd')?.[1] || '';
-          const name = event.tags.find(t => t[0] === 'name')?.[1] || dTag;
-          const description = event.tags.find(t => t[0] === 'description')?.[1] || '';
+          const dTag = event.tags.find((t: any) => t[0] === 'd')?.[1] || '';
+          const name = event.tags.find((t: any) => t[0] === 'name')?.[1] || dTag;
+          const description = event.tags.find((t: any) => t[0] === 'description')?.[1] || '';
 
           // Check if badge already exists in list
           if (!badges.some(b => b.dTag === dTag)) {
@@ -63,19 +66,24 @@
             }];
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error loading badges:', error);
+          loading = false;
         },
         complete: () => {
+          console.log('Badge loading complete');
           loading = false;
         },
       });
+      
+      // Emit the request after subscribing
+      req.emit(filters);
 
-      // Auto-complete after 3 seconds
+      // Auto-complete after 3 seconds as fallback
       setTimeout(() => {
         loading = false;
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load badges:', error);
       loading = false;
     }
