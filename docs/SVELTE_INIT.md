@@ -159,7 +159,75 @@ npm install -D vitest
 npm run test
 ```
 
-## 5. 最終調整
+## 5. Tailwind CSS の導入（オプション）
+
+Tailwind CSS v4を導入する場合、以下の設定が必要です。
+
+### インストール
+
+```bash
+npm install -D tailwindcss @tailwindcss/vite @tailwindcss/forms
+```
+
+### vite.config.ts の設定
+
+```typescript
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+  plugins: [svelte(), tailwindcss()],
+});
+```
+
+### src/app.css の作成
+
+```css
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+```
+
+**重要:** `@import` は `@plugin` より前に記述する必要があります（CSS仕様の要件）。
+
+### biome.json への CSS パーサー設定の追加
+
+Tailwind CSS v4 の特殊な構文（`@plugin`, `@import "tailwindcss"`）を認識させるため、以下を追加：
+
+```json
+{
+  "css": {
+    "parser": {
+      "cssModules": false,
+      "allowWrongLineComments": true,
+      "tailwindDirectives": true
+    },
+    "linter": {
+      "enabled": true
+    }
+  }
+}
+```
+
+### VS Code の設定
+
+`.vscode/settings.json` を作成または更新して、VS Code の組み込み CSS 検証を無効化：
+
+```json
+{
+  "css.lint.unknownAtRules": "ignore",
+  "css.validate": false
+}
+```
+
+これにより、VS Code が `@plugin` を未知のルールとして警告しなくなります。CSS の検証は Biome (`npm run lint`) で行います。
+
+### チェック
+
+```bash
+npm run lint
+npm run build
+```
+
+## 6. 最終調整
 
 
 1. README.mdの内容を確認して実際の内容と合わせる。実際の内容が不明な場合は以下のような空のREADME.mdを作成
