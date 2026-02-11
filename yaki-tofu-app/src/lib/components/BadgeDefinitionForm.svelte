@@ -4,25 +4,12 @@
   import { t } from '../stores/i18n';
   import { isValidBadgeId, isValidUrl } from '../utils/validation';
   import { publishEvent, getUserBadgeDefinitions } from '../services/nostr';
-  import { formatImageSize, type ImageSize } from '../utils/imageUtils';
+  import { type ImageSize } from '../utils/imageUtils';
+  import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
+  import { buildBadgeTags } from '../utils/badgeTagBuilder';
   import ImagePreview from './ImagePreview.svelte';
   import type { NostrEvent } from '../../types/nostr';
   import type { Subscription } from 'rxjs';
-
-  interface BadgeDefinition {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string;
-    thumbnails: {
-      xl?: string;
-      l?: string;
-      m?: string;
-      s?: string;
-      xs?: string;
-    };
-    dTag: string;
-  }
 
   let editMode = $state(false);
   let badges: BadgeDefinition[] = $state([]);
@@ -71,55 +58,10 @@
       badgeSubscription = observable.subscribe({
         next: (packet: any) => {
           const event = packet.event;
-          const dTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1] || '';
-          const name = event.tags.find((t: string[]) => t[0] === 'name')?.[1] || dTag;
-          const description = event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
-          const imageTag = event.tags.find((t: string[]) => t[0] === 'image');
-          const imageUrl = imageTag?.[1] || '';
-          
-          // Load all thumbnail tags and sort by size (largest first)
-          const thumbnailTags = event.tags.filter((t: string[]) => t[0] === 'thumb');
-          const thumbnails: BadgeDefinition['thumbnails'] = {};
-          
-          // Parse sizes and sort thumbnails by area (width * height)
-          const thumbsWithSize = thumbnailTags.map((tag: string[]) => {
-            const url = tag[1];
-            const sizeStr = tag[2];
-            let area = 0;
-            
-            if (sizeStr) {
-              const match = sizeStr.match(/^(\d+)x(\d+)$/);
-              if (match) {
-                const width = Number.parseInt(match[1]);
-                const height = Number.parseInt(match[2]);
-                area = width * height;
-              }
-            }
-            
-            return { url, area };
-          });
-          
-          // Sort by area (largest first)
-          thumbsWithSize.sort((a: { url: string; area: number }, b: { url: string; area: number }) => b.area - a.area);
-          
-          // Assign to xl, l, m, s, xs in order
-          const sizeKeys: Array<keyof BadgeDefinition['thumbnails']> = ['xl', 'l', 'm', 's', 'xs'];
-          for (let i = 0; i < Math.min(thumbsWithSize.length, sizeKeys.length); i++) {
-            thumbnails[sizeKeys[i]] = thumbsWithSize[i].url;
-          }
+          const badge = parseBadgeEvent(event);
 
-          if (!badges.some((b) => b.dTag === dTag)) {
-            badges = [
-              ...badges,
-              {
-                id: event.id || '',
-                name,
-                description,
-                imageUrl,
-                thumbnails,
-                dTag,
-              },
-            ];
+          if (!badges.some((b) => b.dTag === badge.dTag)) {
+            badges = [...badges, badge];
           }
         },
         error: (error: Error) => {
@@ -223,29 +165,20 @@
     message = '';
 
     try {
-      const tags: string[][] = [
-        ['d', badgeId],
-        ['name', badgeName],
-        ['description', description],
-        ['image', imageUrl, mainImageSize ? formatImageSize(mainImageSize) : '1024x1024'],
-      ];
-
-      // Add thumbnail tags for each size
-      if (thumbnailXlUrl) {
-        tags.push(['thumb', thumbnailXlUrl, thumbnailXlSize ? formatImageSize(thumbnailXlSize) : '512x512']);
-      }
-      if (thumbnailLUrl) {
-        tags.push(['thumb', thumbnailLUrl, thumbnailLSize ? formatImageSize(thumbnailLSize) : '256x256']);
-      }
-      if (thumbnailMUrl) {
-        tags.push(['thumb', thumbnailMUrl, thumbnailMSize ? formatImageSize(thumbnailMSize) : '64x64']);
-      }
-      if (thumbnailSUrl) {
-        tags.push(['thumb', thumbnailSUrl, thumbnailSSize ? formatImageSize(thumbnailSSize) : '32x32']);
-      }
-      if (thumbnailXsUrl) {
-        tags.push(['thumb', thumbnailXsUrl, thumbnailXsSize ? formatImageSize(thumbnailXsSize) : '16x16']);
-      }
+      const tags = buildBadgeTags({
+        badgeId,
+        badgeName,
+        description,
+        imageUrl,
+        mainImageSize,
+        thumbnails: [
+          { url: thumbnailXlUrl, size: thumbnailXlSize, defaultSize: '512x512' },
+          { url: thumbnailLUrl, size: thumbnailLSize, defaultSize: '256x256' },
+          { url: thumbnailMUrl, size: thumbnailMSize, defaultSize: '64x64' },
+          { url: thumbnailSUrl, size: thumbnailSSize, defaultSize: '32x32' },
+          { url: thumbnailXsUrl, size: thumbnailXsSize, defaultSize: '16x16' },
+        ],
+      });
 
       const event: NostrEvent = {
         created_at: Math.floor(Date.now() / 1000),
