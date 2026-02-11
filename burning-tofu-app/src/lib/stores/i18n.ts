@@ -85,6 +85,14 @@ const translations: Translations = {
     en: 'https://example.com/badge.png',
     ja: 'https://example.com/badge.png',
   },
+  thumbnailUrl: {
+    en: 'Thumbnail URL (optional)',
+    ja: 'サムネイルURL (任意)',
+  },
+  thumbnailUrlPlaceholder: {
+    en: 'https://example.com/thumbnail.png',
+    ja: 'https://example.com/thumbnail.png',
+  },
   imagePreview: {
     en: 'Image Preview',
     ja: '画像プレビュー',
@@ -96,6 +104,26 @@ const translations: Translations = {
   createBadgeButton: {
     en: 'Create Badge',
     ja: 'バッジを作成',
+  },
+  updateBadgeButton: {
+    en: 'Update Badge',
+    ja: 'バッジを更新',
+  },
+  editMode: {
+    en: 'Edit existing badge',
+    ja: '既存のバッジを編集',
+  },
+  createNewBadge: {
+    en: 'Create new badge',
+    ja: '新しいバッジを作成',
+  },
+  loadMyBadges: {
+    en: 'Load My Badges',
+    ja: '自分のバッジを読み込む',
+  },
+  selectBadgeToEdit: {
+    en: 'Select badge to edit',
+    ja: '編集するバッジを選択',
   },
   
   // Badge Award Form

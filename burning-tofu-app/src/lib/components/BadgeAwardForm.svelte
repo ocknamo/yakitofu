@@ -12,6 +12,8 @@
     id: string;
     name: string;
     description: string;
+    imageUrl: string;
+    thumbnailUrl?: string;
     dTag: string;
   }
 
@@ -23,6 +25,9 @@
   let message = $state('');
   let messageType: 'success' | 'error' = $state('success');
   let badgeSubscription: Subscription | null = null;
+
+  // Get selected badge details
+  let selectedBadgeDetails = $derived(badges.find(b => b.dTag === selectedBadge));
 
   // Load user's badges when logged in
   $effect(() => {
@@ -64,8 +69,11 @@
           const event = packet.event;
           const dTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1] || '';
           const name = event.tags.find((t: string[]) => t[0] === 'name')?.[1] || dTag;
-          const description =
-            event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
+          const description = event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
+          const imageTag = event.tags.find((t: string[]) => t[0] === 'image');
+          const imageUrl = imageTag?.[1] || '';
+          const thumbnailTag = event.tags.find((t: string[]) => t[0] === 'thumb');
+          const thumbnailUrl = thumbnailTag?.[1] || '';
 
           // Check if badge already exists in list
           if (!badges.some((b) => b.dTag === dTag)) {
@@ -75,6 +83,8 @@
                 id: event.id || '',
                 name,
                 description,
+                imageUrl,
+                thumbnailUrl,
                 dTag,
               },
             ];
@@ -162,123 +172,84 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
+<div class="max-w-2xl">
   {#if loading}
-    <p>Loading badges...</p>
+    <p class="text-gray-600">Loading badges...</p>
   {:else if badges.length === 0}
-    <p class="info">No badges found. Create a badge first!</p>
+    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <p class="text-blue-800">No badges found. Create a badge first!</p>
+    </div>
   {:else}
-    <div class="form-group">
-      <label for="badge">{$t('selectBadge')} *</label>
-      <select id="badge" bind:value={selectedBadge} required>
-        <option value="">-- Select --</option>
-        {#each badges as badge}
-          <option value={badge.dTag}>
-            {badge.name} ({badge.dTag})
-          </option>
-        {/each}
-      </select>
-    </div>
+    <form onsubmit={handleSubmit} class="space-y-6">
+      <div>
+        <label for="badge" class="block mb-2 font-medium text-gray-700">
+          {$t('selectBadge')} *
+        </label>
+        <select 
+          id="badge" 
+          bind:value={selectedBadge} 
+          required
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        >
+          <option value="">-- Select --</option>
+          {#each badges as badge}
+            <option value={badge.dTag}>
+              {badge.name} ({badge.dTag})
+            </option>
+          {/each}
+        </select>
+      </div>
 
-    <div class="form-group">
-      <label for="recipient">{$t('recipientNpub')} *</label>
-      <input
-        id="recipient"
-        type="text"
-        bind:value={recipientNpub}
-        placeholder={$t('recipientNpubPlaceholder')}
-        required
-        pattern="npub1[a-z0-9]+"
-      />
-    </div>
+      {#if selectedBadgeDetails}
+        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <h4 class="font-medium text-gray-900 mb-3">Selected Badge Details</h4>
+          <div class="flex flex-col md:flex-row gap-4">
+            {#if selectedBadgeDetails.thumbnailUrl || selectedBadgeDetails.imageUrl}
+              <div class="flex-shrink-0">
+                <img 
+                  src={selectedBadgeDetails.thumbnailUrl || selectedBadgeDetails.imageUrl} 
+                  alt={selectedBadgeDetails.name}
+                  class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md border border-gray-300"
+                />
+              </div>
+            {/if}
+            <div class="flex-1">
+              <h5 class="font-semibold text-gray-900 text-lg mb-2">{selectedBadgeDetails.name}</h5>
+              <p class="text-gray-700 text-sm mb-2">{selectedBadgeDetails.description}</p>
+              <p class="text-gray-600 text-xs font-mono">ID: {selectedBadgeDetails.dTag}</p>
+            </div>
+          </div>
+        </div>
+      {/if}
 
-    <button type="submit" disabled={submitting || !$authStore.isLoggedIn}>
-      {submitting ? '...' : $t('awardBadgeButton')}
-    </button>
+      <div>
+        <label for="recipient" class="block mb-2 font-medium text-gray-700">
+          {$t('recipientNpub')} *
+        </label>
+        <input
+          id="recipient"
+          type="text"
+          bind:value={recipientNpub}
+          placeholder={$t('recipientNpubPlaceholder')}
+          required
+          pattern="npub1[a-z0-9]+"
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent font-mono text-sm"
+        />
+      </div>
+
+      <button 
+        type="submit" 
+        disabled={submitting || !$authStore.isLoggedIn}
+        class="w-full md:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors font-medium"
+      >
+        {submitting ? '...' : $t('awardBadgeButton')}
+      </button>
+
+      {#if message}
+        <div class="p-4 rounded-md {messageType === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}">
+          {message}
+        </div>
+      {/if}
+    </form>
   {/if}
-
-  {#if message}
-    <div class="message {messageType}">
-      {message}
-    </div>
-  {/if}
-</form>
-
-<style>
-  form {
-    max-width: 600px;
-  }
-
-  .form-group {
-    margin-bottom: 1em;
-  }
-
-  label {
-    display: block;
-    margin-bottom: 0.3em;
-    font-weight: 500;
-    color: #333;
-  }
-
-  input,
-  select {
-    width: 100%;
-    padding: 0.5em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1em;
-    font-family: inherit;
-  }
-
-  input:focus,
-  select:focus {
-    outline: none;
-    border-color: #ff3e00;
-  }
-
-  button {
-    padding: 0.7em 1.5em;
-    background: #ff3e00;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    margin-top: 1em;
-  }
-
-  button:hover:not(:disabled) {
-    background: #e63900;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .info {
-    padding: 1em;
-    background: #e7f3ff;
-    border: 1px solid #2196f3;
-    border-radius: 4px;
-    color: #0d47a1;
-  }
-
-  .message {
-    margin-top: 1em;
-    padding: 0.8em;
-    border-radius: 4px;
-  }
-
-  .message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #28a745;
-  }
-
-  .message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #dc3545;
-  }
-</style>
+</div>

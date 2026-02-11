@@ -1,9 +1,10 @@
 <script lang="ts">
   import { authStore } from '../stores/auth';
   import { t } from '../stores/i18n';
+  import { hexToNpub } from '../utils/npubConverter';
 
-  let loading = false;
-  let error = '';
+  let loading = $state(false);
+  let error = $state('');
 
   async function handleLogin() {
     loading = true;
@@ -20,90 +21,40 @@
   function handleLogout() {
     authStore.logout();
   }
+
+  let npubKey = $derived($authStore.pubkey ? hexToNpub($authStore.pubkey) : '');
 </script>
 
 {#if !$authStore.hasNostrExtension}
-  <div class="no-extension">
-    <p>{$t('noExtension')}</p>
+  <div class="mb-4 md:mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <p class="text-yellow-800 text-sm md:text-base">{$t('noExtension')}</p>
   </div>
 {:else if $authStore.isLoggedIn}
-  <div class="logged-in">
-    <p>{$t('loggedInAs')}: <code>{$authStore.pubkey?.slice(0, 8)}...</code></p>
-    <button onclick={handleLogout}>{$t('logout')}</button>
+  <div class="mb-4 md:mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+    <p class="text-green-800 text-sm md:text-base flex-1">
+      <span class="font-medium">{$t('loggedInAs')}:</span>
+      <code class="ml-2 bg-white px-2 py-1 rounded text-xs md:text-sm font-mono break-all">
+        {npubKey.slice(0, 16)}...{npubKey.slice(-8)}
+      </code>
+    </p>
+    <button 
+      onclick={handleLogout}
+      class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors text-sm md:text-base whitespace-nowrap"
+    >
+      {$t('logout')}
+    </button>
   </div>
 {:else}
-  <div class="login">
-    <button onclick={handleLogin} disabled={loading}>
+  <div class="mb-4 md:mb-6">
+    <button 
+      onclick={handleLogin} 
+      disabled={loading}
+      class="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors text-sm md:text-base font-medium"
+    >
       {loading ? '...' : $t('login')}
     </button>
     {#if error}
-      <p class="error">{error}</p>
+      <p class="mt-2 text-red-600 text-sm">{error}</p>
     {/if}
   </div>
 {/if}
-
-<style>
-  .no-extension {
-    padding: 1em;
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 4px;
-    margin-bottom: 1em;
-  }
-
-  .no-extension p {
-    margin: 0;
-    color: #856404;
-  }
-
-  .logged-in {
-    display: flex;
-    align-items: center;
-    gap: 1em;
-    padding: 1em;
-    background: #d4edda;
-    border: 1px solid #28a745;
-    border-radius: 4px;
-    margin-bottom: 1em;
-  }
-
-  .logged-in p {
-    margin: 0;
-    color: #155724;
-  }
-
-  .logged-in code {
-    background: #fff;
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-family: monospace;
-  }
-
-  .login {
-    margin-bottom: 1em;
-  }
-
-  button {
-    padding: 0.5em 1em;
-    background: #ff3e00;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-  }
-
-  button:hover:not(:disabled) {
-    background: #e63900;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .error {
-    color: #dc3545;
-    margin-top: 0.5em;
-  }
-</style>

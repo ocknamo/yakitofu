@@ -37,18 +37,18 @@
 </script>
 
 {#if url}
-  <div class="image-preview">
-    <h4>{$t('imagePreview')}</h4>
+  <div class="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+    <h4 class="font-medium text-gray-700 mb-3">{$t('imagePreview')}</h4>
     {#if loading}
-      <p>Loading...</p>
+      <p class="text-gray-600">Loading...</p>
     {:else if error}
-      <p class="error">{error}</p>
+      <p class="text-red-600">{error}</p>
     {:else if imageSize}
-      <img src={url} alt="Badge preview" />
-      <div class="image-info">
-        <p>Size: {formatImageSize(imageSize)}</p>
+      <img src={url} alt="Badge preview" class="max-w-[200px] max-h-[200px] rounded-md mb-2" />
+      <div class="text-sm space-y-1">
+        <p class="text-gray-600">Size: {formatImageSize(imageSize)}</p>
         {#if !isRecommendedSize(imageSize)}
-          <p class="warning">
+          <p class="text-orange-600 font-semibold">
             {$t('imageSizeWarning')} {formatImageSize(imageSize)}
           </p>
         {/if}
@@ -56,41 +56,3 @@
     {/if}
   </div>
 {/if}
-
-<style>
-  .image-preview {
-    margin-top: 1em;
-    padding: 1em;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #f9f9f9;
-  }
-
-  h4 {
-    margin-top: 0;
-    margin-bottom: 0.5em;
-    color: #333;
-  }
-
-  img {
-    max-width: 200px;
-    max-height: 200px;
-    border-radius: 4px;
-    display: block;
-    margin-bottom: 0.5em;
-  }
-
-  .image-info p {
-    margin: 0.25em 0;
-    font-size: 0.9em;
-  }
-
-  .warning {
-    color: #ff9800;
-    font-weight: bold;
-  }
-
-  .error {
-    color: #dc3545;
-  }
-</style>

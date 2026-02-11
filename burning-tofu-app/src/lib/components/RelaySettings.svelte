@@ -27,145 +27,45 @@
   }
 </script>
 
-<div class="relay-settings">
-  <h3>{$t('currentRelays')}</h3>
+<div class="max-w-2xl">
+  <h3 class="text-xl font-semibold text-gray-800 mb-4">{$t('currentRelays')}</h3>
   
-  <div class="relay-list">
+  <div class="space-y-2 mb-8">
     {#each $relayStore.relays as relay}
-      <div class="relay-item">
-        <span class="relay-url">{relay}</span>
-        <span class="relay-status" class:connected={$relayStore.connected.has(relay)}>
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 md:p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <span class="flex-1 font-mono text-xs md:text-sm text-gray-700 break-all">{relay}</span>
+        <span class="px-2 py-1 rounded text-xs {$relayStore.connected.has(relay) ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'} whitespace-nowrap self-start sm:self-auto">
           {$relayStore.connected.has(relay) ? $t('connected') : $t('disconnected')}
         </span>
-        <button onclick={() => handleRemoveRelay(relay)} class="remove-btn">
+        <button 
+          onclick={() => handleRemoveRelay(relay)}
+          class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md transition-colors whitespace-nowrap self-start sm:self-auto"
+        >
           {$t('remove')}
         </button>
       </div>
     {/each}
   </div>
 
-  <div class="add-relay">
-    <h4>{$t('addRelay')}</h4>
-    <div class="input-group">
+  <div>
+    <h4 class="text-lg font-medium text-gray-800 mb-3">{$t('addRelay')}</h4>
+    <div class="flex flex-col sm:flex-row gap-2">
       <input
         type="text"
         bind:value={newRelay}
         placeholder={$t('relayUrlPlaceholder')}
         onkeydown={(e) => e.key === 'Enter' && handleAddRelay()}
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
       />
-      <button onclick={handleAddRelay}>Add</button>
+      <button 
+        onclick={handleAddRelay}
+        class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors whitespace-nowrap"
+      >
+        Add
+      </button>
     </div>
     {#if error}
-      <p class="error">{error}</p>
+      <p class="mt-2 text-red-600 text-sm">{error}</p>
     {/if}
   </div>
 </div>
-
-<style>
-  .relay-settings {
-    max-width: 600px;
-  }
-
-  h3 {
-    margin-top: 0;
-    margin-bottom: 1em;
-    color: #333;
-  }
-
-  h4 {
-    margin-top: 2em;
-    margin-bottom: 0.5em;
-    color: #333;
-  }
-
-  .relay-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-  }
-
-  .relay-item {
-    display: flex;
-    align-items: center;
-    gap: 1em;
-    padding: 0.8em;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-
-  .relay-url {
-    flex: 1;
-    font-family: monospace;
-    font-size: 0.9em;
-  }
-
-  .relay-status {
-    padding: 0.2em 0.6em;
-    border-radius: 3px;
-    font-size: 0.8em;
-    background: #ffc107;
-    color: #856404;
-  }
-
-  .relay-status.connected {
-    background: #28a745;
-    color: white;
-  }
-
-  .remove-btn {
-    padding: 0.3em 0.8em;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-  }
-
-  .remove-btn:hover {
-    background: #c82333;
-  }
-
-  .add-relay {
-    margin-top: 2em;
-  }
-
-  .input-group {
-    display: flex;
-    gap: 0.5em;
-  }
-
-  input {
-    flex: 1;
-    padding: 0.5em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1em;
-  }
-
-  input:focus {
-    outline: none;
-    border-color: #ff3e00;
-  }
-
-  button {
-    padding: 0.5em 1em;
-    background: #ff3e00;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-  }
-
-  button:hover {
-    background: #e63900;
-  }
-
-  .error {
-    color: #dc3545;
-    margin-top: 0.5em;
-    font-size: 0.9em;
-  }
-</style>

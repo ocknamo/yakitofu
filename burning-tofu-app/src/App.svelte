@@ -1,4 +1,5 @@
 <script lang="ts">
+import './app.css';
 import { onMount } from 'svelte';
 import BadgeAwardForm from './lib/components/BadgeAwardForm.svelte';
 import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
@@ -11,6 +12,7 @@ import { t } from './lib/stores/i18n';
 import { relayStore } from './lib/stores/relay';
 
 type Tab = 'create' | 'award' | 'relay';
+
 let activeTab: Tab = $state('create');
 
 // Initialize relays when relay settings change
@@ -28,170 +30,64 @@ onMount(() => {
 });
 </script>
 
-<main>
-  <header>
-    <div class="header-content">
-      <div class="title-section">
-        <h1>{$t('appTitle')}</h1>
-        <p class="subtitle">{$t('appDescription')}</p>
-      </div>
-      <LanguageSwitch />
-    </div>
-  </header>
+<main class="min-h-screen bg-gray-50">
+	<header
+		class="bg-liner-to-br from-orange-500 to-orange-600 text-white shadow-md"
+	>
+		<div
+			class="max-w-7xl mx-auto px-4 py-6 md:py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+		>
+			<div class="flex-1">
+				<h1 class="text-3xl md:text-4xl font-bold">📛 {$t('appTitle')}</h1>
+				<p class="mt-2 text-sm md:text-base opacity-90">{$t('appDescription')}</p>
+			</div>
 
-  <div class="container">
-    <LoginButton />
+			<LanguageSwitch />
+		</div>
+	</header>
 
-    <div class="tabs">
-      <button
-        class="tab"
-        class:active={activeTab === 'create'}
-        onclick={() => activeTab = 'create'}
-      >
-        {$t('createBadge')}
-      </button>
-      <button
-        class="tab"
-        class:active={activeTab === 'award'}
-        onclick={() => activeTab = 'award'}
-      >
-        {$t('awardBadge')}
-      </button>
-      <button
-        class="tab"
-        class:active={activeTab === 'relay'}
-        onclick={() => activeTab = 'relay'}
-      >
-        {$t('relaySettings')}
-      </button>
-    </div>
+	<div class="max-w-7xl mx-auto px-4 py-6 md:py-8">
+		<LoginButton />
 
-    <div class="tab-content">
-      {#if activeTab === 'create'}
-        <BadgeDefinitionForm />
-      {:else if activeTab === 'award'}
-        <BadgeAwardForm />
-      {:else if activeTab === 'relay'}
-        <RelaySettings />
-      {/if}
-    </div>
-  </div>
+		<div class="mb-6 md:mb-8 border-b-2 border-gray-200">
+			<div class="flex flex-col md:flex-row gap-2 md:gap-0">
+				<button
+					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 md:border-l-3 md:border-b-0 {activeTab === 'create'
+						? 'border-b-orange-500 md:border-l-orange-500 md:border-b-transparent text-orange-500 font-semibold bg-gray-50 md:bg-transparent'
+						: 'border-transparent hover:text-orange-500 hover:bg-gray-50'}"
+					onclick={() => activeTab = 'create'}
+				>
+					{$t('createBadge')}
+				</button>
+
+				<button
+					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 md:border-l-3 md:border-b-0 {activeTab === 'award'
+						? 'border-b-orange-500 md:border-l-orange-500 md:border-b-transparent text-orange-500 font-semibold bg-gray-50 md:bg-transparent'
+						: 'border-transparent hover:text-orange-500 hover:bg-gray-50'}"
+					onclick={() => activeTab = 'award'}
+				>
+					{$t('awardBadge')}
+				</button>
+
+				<button
+					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 md:border-l-3 md:border-b-0 {activeTab === 'relay'
+						? 'border-b-orange-500 md:border-l-orange-500 md:border-b-transparent text-orange-500 font-semibold bg-gray-50 md:bg-transparent'
+						: 'border-transparent hover:text-orange-500 hover:bg-gray-50'}"
+					onclick={() => activeTab = 'relay'}
+				>
+					{$t('relaySettings')}
+				</button>
+			</div>
+		</div>
+
+		<div class="bg-white rounded-lg shadow-sm p-4 md:p-8">
+			{#if activeTab === 'create'}
+				<BadgeDefinitionForm />
+			{:else if activeTab === 'award'}
+				<BadgeAwardForm />
+			{:else if activeTab === 'relay'}
+				<RelaySettings />
+			{/if}
+		</div>
+	</div>
 </main>
-
-<style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    background: #fafafa;
-  }
-
-  main {
-    min-height: 100vh;
-  }
-
-  header {
-    background: linear-gradient(135deg, #ff3e00 0%, #ff6b35 100%);
-    color: white;
-    padding: 2em 1em;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2em;
-  }
-
-  .title-section {
-    flex: 1;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 2.5em;
-    font-weight: 700;
-  }
-
-  .subtitle {
-    margin: 0.5em 0 0 0;
-    font-size: 1.1em;
-    opacity: 0.9;
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2em 1em;
-  }
-
-  .tabs {
-    display: flex;
-    gap: 0.5em;
-    margin-bottom: 2em;
-    border-bottom: 2px solid #ddd;
-  }
-
-  .tab {
-    padding: 0.8em 1.5em;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid transparent;
-    cursor: pointer;
-    font-size: 1em;
-    color: #666;
-    transition: all 0.2s;
-  }
-
-  .tab:hover {
-    color: #ff3e00;
-    background: #f9f9f9;
-  }
-
-  .tab.active {
-    color: #ff3e00;
-    border-bottom-color: #ff3e00;
-    font-weight: 600;
-  }
-
-  .tab-content {
-    background: white;
-    padding: 2em;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  @media (max-width: 768px) {
-    .header-content {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    h1 {
-      font-size: 2em;
-    }
-
-    .tabs {
-      flex-direction: column;
-      border-bottom: none;
-    }
-
-    .tab {
-      border-bottom: 1px solid #ddd;
-      border-left: 3px solid transparent;
-    }
-
-    .tab.active {
-      border-bottom-color: #ddd;
-      border-left-color: #ff3e00;
-    }
-
-    .tab-content {
-      padding: 1em;
-    }
-  }
-</style>

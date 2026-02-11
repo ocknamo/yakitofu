@@ -6,44 +6,17 @@
   }
 </script>
 
-<div class="language-switch">
+<div class="flex gap-2">
   <button
-    class:active={$languageStore === 'en'}
+    class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-sm md:text-base transition-colors {$languageStore === 'en' ? 'bg-white text-orange-500 font-medium' : 'bg-orange-400 text-white hover:bg-white hover:text-orange-500'}"
     onclick={() => switchLanguage('en')}
   >
     EN
   </button>
   <button
-    class:active={$languageStore === 'ja'}
+    class="px-3 py-1.5 md:px-4 md:py-2 rounded-md text-sm md:text-base transition-colors {$languageStore === 'ja' ? 'bg-white text-orange-500 font-medium' : 'bg-orange-400 text-white hover:bg-white hover:text-orange-500'}"
     onclick={() => switchLanguage('ja')}
   >
     日本語
   </button>
 </div>
-
-<style>
-  .language-switch {
-    display: flex;
-    gap: 0.5em;
-  }
-
-  button {
-    padding: 0.3em 0.8em;
-    background: #f0f0f0;
-    color: #333;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-  }
-
-  button:hover {
-    background: #e0e0e0;
-  }
-
-  button.active {
-    background: #ff3e00;
-    color: white;
-    border-color: #ff3e00;
-  }
-</style>
