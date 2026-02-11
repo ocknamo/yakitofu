@@ -11,7 +11,7 @@ import { authStore } from './lib/stores/auth';
 import { t } from './lib/stores/i18n';
 import { relayStore } from './lib/stores/relay';
 
-type Tab = 'create' | 'award' | 'relay';
+type Tab = 'create' | 'award' | 'settings';
 
 let activeTab: Tab = $state('create');
 
@@ -72,10 +72,10 @@ onMount(() => {
 				</button>
 
 				<button
-					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'relay'
+					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'settings'
 						? 'border-b-orange-500 text-orange-500 font-semibold'
 						: 'border-transparent hover:text-orange-500'}"
-					onclick={() => activeTab = 'relay'}
+					onclick={() => activeTab = 'settings'}
 				>
 					{$t('settings')}
 				</button>
@@ -87,7 +87,7 @@ onMount(() => {
 				<BadgeDefinitionForm />
 			{:else if activeTab === 'award'}
 				<BadgeAwardForm />
-			{:else if activeTab === 'relay'}
+			{:else if activeTab === 'settings'}
 				<RelaySettings />
 			{/if}
 		</div>
