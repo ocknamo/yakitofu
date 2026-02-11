@@ -85,6 +85,10 @@ const translations: Translations = {
     en: 'https://example.com/badge.png',
     ja: 'https://example.com/badge.png',
   },
+  imageUploadHint: {
+    en: 'e.g., You can upload images and get URLs using ehagaki',
+    ja: 'eg. ehagakiで画像をアップロードしてURLを取得できます',
+  },
   thumbnailUrl: {
     en: 'Thumbnail URL (optional)',
     ja: 'サムネイルURL (任意)',
@@ -190,6 +194,14 @@ const translations: Translations = {
   loginRequired: {
     en: 'Please login first',
     ja: '先にログインしてください',
+  },
+  noBadgesFound: {
+    en: 'No badges found. Create a badge first!',
+    ja: 'バッジが見つかりません。先にバッジを作成してください！',
+  },
+  pleaseLoginFirst: {
+    en: 'Please login first',
+    ja: 'まずログインしてください',
   },
   
   // Footer

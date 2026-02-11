@@ -217,7 +217,7 @@
       {#if loadingBadges}
         <p class="text-blue-800">Loading badges...</p>
       {:else if badges.length === 0}
-        <p class="text-blue-800">No badges found. Create one first!</p>
+        <p class="text-blue-800">{$t('noBadgesFound')}</p>
       {:else}
         <div class="space-y-2">
           {#each badges as badge}
@@ -291,6 +291,9 @@
         required
         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
       />
+      <p class="mt-1 text-sm text-gray-600">
+        {$t('imageUploadHint')} (<a href="https://lokuyow.github.io/ehagaki/" target="_blank" rel="noopener noreferrer" class="text-orange-500 hover:text-orange-600 underline">ehagaki</a>)
+      </p>
     </div>
 
     <div>

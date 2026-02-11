@@ -173,11 +173,15 @@
 </script>
 
 <div class="max-w-2xl">
-  {#if loading}
+  {#if !$authStore.isLoggedIn}
+    <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <p class="text-yellow-800">{$t('pleaseLoginFirst')}</p>
+    </div>
+  {:else if loading}
     <p class="text-gray-600">Loading badges...</p>
   {:else if badges.length === 0}
     <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <p class="text-blue-800">No badges found. Create a badge first!</p>
+      <p class="text-blue-800">{$t('noBadgesFound')}</p>
     </div>
   {:else}
     <form onsubmit={handleSubmit} class="space-y-6">
