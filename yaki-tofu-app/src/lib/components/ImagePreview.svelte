@@ -5,9 +5,10 @@
   interface Props {
     url: string;
     onSizeLoaded?: (size: ImageSize | null) => void;
+    recommendedSize?: ImageSize;
   }
 
-  let { url, onSizeLoaded }: Props = $props();
+  let { url, onSizeLoaded, recommendedSize }: Props = $props();
   let imageSize: ImageSize | null = $state(null);
   let loading = $state(false);
   let error = $state('');
@@ -54,7 +55,11 @@
       <img src={url} alt="Badge preview" class="max-w-[200px] max-h-[200px] rounded-md mb-2" />
       <div class="text-sm space-y-1">
         <p class="text-gray-600">Size: {formatImageSize(imageSize)}</p>
-        {#if !isRecommendedSize(imageSize)}
+        {#if recommendedSize && (imageSize.width !== recommendedSize.width || imageSize.height !== recommendedSize.height)}
+          <p class="text-orange-600 font-semibold">
+            Warning: Recommended size is {formatImageSize(recommendedSize)}. Current size: {formatImageSize(imageSize)}
+          </p>
+        {:else if !recommendedSize && !isRecommendedSize(imageSize)}
           <p class="text-orange-600 font-semibold">
             {$t('imageSizeWarning')} {formatImageSize(imageSize)}
           </p>

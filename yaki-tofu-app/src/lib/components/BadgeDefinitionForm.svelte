@@ -14,7 +14,13 @@
     name: string;
     description: string;
     imageUrl: string;
-    thumbnailUrl?: string;
+    thumbnails: {
+      xl?: string;
+      l?: string;
+      m?: string;
+      s?: string;
+      xs?: string;
+    };
     dTag: string;
   }
 
@@ -27,9 +33,17 @@
   let badgeName = $state('');
   let description = $state('');
   let imageUrl = $state('');
-  let thumbnailUrl = $state('');
+  let thumbnailXlUrl = $state('');
+  let thumbnailLUrl = $state('');
+  let thumbnailMUrl = $state('');
+  let thumbnailSUrl = $state('');
+  let thumbnailXsUrl = $state('');
   let mainImageSize = $state<ImageSize | null>(null);
-  let thumbnailImageSize = $state<ImageSize | null>(null);
+  let thumbnailXlSize = $state<ImageSize | null>(null);
+  let thumbnailLSize = $state<ImageSize | null>(null);
+  let thumbnailMSize = $state<ImageSize | null>(null);
+  let thumbnailSSize = $state<ImageSize | null>(null);
+  let thumbnailXsSize = $state<ImageSize | null>(null);
   let submitting = $state(false);
   let message = $state('');
   let messageType: 'success' | 'error' = $state('success');
@@ -62,8 +76,37 @@
           const description = event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
           const imageTag = event.tags.find((t: string[]) => t[0] === 'image');
           const imageUrl = imageTag?.[1] || '';
-          const thumbnailTag = event.tags.find((t: string[]) => t[0] === 'thumb');
-          const thumbnailUrl = thumbnailTag?.[1] || '';
+          
+          // Load all thumbnail tags and sort by size (largest first)
+          const thumbnailTags = event.tags.filter((t: string[]) => t[0] === 'thumb');
+          const thumbnails: BadgeDefinition['thumbnails'] = {};
+          
+          // Parse sizes and sort thumbnails by area (width * height)
+          const thumbsWithSize = thumbnailTags.map((tag: string[]) => {
+            const url = tag[1];
+            const sizeStr = tag[2];
+            let area = 0;
+            
+            if (sizeStr) {
+              const match = sizeStr.match(/^(\d+)x(\d+)$/);
+              if (match) {
+                const width = Number.parseInt(match[1]);
+                const height = Number.parseInt(match[2]);
+                area = width * height;
+              }
+            }
+            
+            return { url, area };
+          });
+          
+          // Sort by area (largest first)
+          thumbsWithSize.sort((a: { url: string; area: number }, b: { url: string; area: number }) => b.area - a.area);
+          
+          // Assign to xl, l, m, s, xs in order
+          const sizeKeys: Array<keyof BadgeDefinition['thumbnails']> = ['xl', 'l', 'm', 's', 'xs'];
+          for (let i = 0; i < Math.min(thumbsWithSize.length, sizeKeys.length); i++) {
+            thumbnails[sizeKeys[i]] = thumbsWithSize[i].url;
+          }
 
           if (!badges.some((b) => b.dTag === dTag)) {
             badges = [
@@ -73,7 +116,7 @@
                 name,
                 description,
                 imageUrl,
-                thumbnailUrl,
+                thumbnails,
                 dTag,
               },
             ];
@@ -117,7 +160,11 @@
       badgeName = badge.name;
       description = badge.description;
       imageUrl = badge.imageUrl;
-      thumbnailUrl = badge.thumbnailUrl || '';
+      thumbnailXlUrl = badge.thumbnails.xl || '';
+      thumbnailLUrl = badge.thumbnails.l || '';
+      thumbnailMUrl = badge.thumbnails.m || '';
+      thumbnailSUrl = badge.thumbnails.s || '';
+      thumbnailXsUrl = badge.thumbnails.xs || '';
       selectedBadgeForEdit = dTag;
     }
   }
@@ -127,7 +174,11 @@
     badgeName = '';
     description = '';
     imageUrl = '';
-    thumbnailUrl = '';
+    thumbnailXlUrl = '';
+    thumbnailLUrl = '';
+    thumbnailMUrl = '';
+    thumbnailSUrl = '';
+    thumbnailXsUrl = '';
   }
 
   async function handleSubmit(e: Event) {
@@ -151,10 +202,21 @@
       return;
     }
 
-    if (thumbnailUrl && !isValidUrl(thumbnailUrl)) {
-      message = 'Invalid thumbnail URL';
-      messageType = 'error';
-      return;
+    // Validate all thumbnail URLs
+    const thumbnailUrls = [
+      { url: thumbnailXlUrl, name: 'XL' },
+      { url: thumbnailLUrl, name: 'L' },
+      { url: thumbnailMUrl, name: 'M' },
+      { url: thumbnailSUrl, name: 'S' },
+      { url: thumbnailXsUrl, name: 'XS' },
+    ];
+
+    for (const thumb of thumbnailUrls) {
+      if (thumb.url && !isValidUrl(thumb.url)) {
+        message = `Invalid ${thumb.name} thumbnail URL`;
+        messageType = 'error';
+        return;
+      }
     }
 
     submitting = true;
@@ -168,8 +230,21 @@
         ['image', imageUrl, mainImageSize ? formatImageSize(mainImageSize) : '1024x1024'],
       ];
 
-      if (thumbnailUrl) {
-        tags.push(['thumb', thumbnailUrl, thumbnailImageSize ? formatImageSize(thumbnailImageSize) : '256x256']);
+      // Add thumbnail tags for each size
+      if (thumbnailXlUrl) {
+        tags.push(['thumb', thumbnailXlUrl, thumbnailXlSize ? formatImageSize(thumbnailXlSize) : '512x512']);
+      }
+      if (thumbnailLUrl) {
+        tags.push(['thumb', thumbnailLUrl, thumbnailLSize ? formatImageSize(thumbnailLSize) : '256x256']);
+      }
+      if (thumbnailMUrl) {
+        tags.push(['thumb', thumbnailMUrl, thumbnailMSize ? formatImageSize(thumbnailMSize) : '64x64']);
+      }
+      if (thumbnailSUrl) {
+        tags.push(['thumb', thumbnailSUrl, thumbnailSSize ? formatImageSize(thumbnailSSize) : '32x32']);
+      }
+      if (thumbnailXsUrl) {
+        tags.push(['thumb', thumbnailXsUrl, thumbnailXsSize ? formatImageSize(thumbnailXsSize) : '16x16']);
       }
 
       const event: NostrEvent = {
@@ -299,26 +374,97 @@
       </p>
     </div>
 
-    <div>
-      <label for="thumbnailUrl" class="block mb-2 font-medium text-gray-700">
-        {$t('thumbnailUrl')}
-      </label>
-      <input
-        id="thumbnailUrl"
-        type="url"
-        bind:value={thumbnailUrl}
-        placeholder={$t('thumbnailUrlPlaceholder')}
-        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-      />
-    </div>
-
     {#if imageUrl && isValidUrl(imageUrl)}
-      <ImagePreview url={imageUrl} onSizeLoaded={(size) => mainImageSize = size} />
+      <ImagePreview url={imageUrl} onSizeLoaded={(size) => mainImageSize = size} recommendedSize={{ width: 1024, height: 1024 }} />
     {/if}
 
-    {#if thumbnailUrl && isValidUrl(thumbnailUrl)}
-      <ImagePreview url={thumbnailUrl} onSizeLoaded={(size) => thumbnailImageSize = size} />
-    {/if}
+    <!-- Thumbnails Section -->
+    <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
+      <div>
+        <h3 class="font-medium text-gray-900 mb-1">{$t('thumbnailsSection')}</h3>
+        <p class="text-sm text-gray-600">{$t('thumbnailsHint')}</p>
+      </div>
+
+      <div>
+        <label for="thumbnailXl" class="block mb-2 font-medium text-gray-700">
+          {$t('thumbnailXl')}
+        </label>
+        <input
+          id="thumbnailXl"
+          type="url"
+          bind:value={thumbnailXlUrl}
+          placeholder={$t('thumbnailUrlPlaceholder')}
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {#if thumbnailXlUrl && isValidUrl(thumbnailXlUrl)}
+          <ImagePreview url={thumbnailXlUrl} onSizeLoaded={(size) => thumbnailXlSize = size} recommendedSize={{ width: 512, height: 512 }} />
+        {/if}
+      </div>
+
+      <div>
+        <label for="thumbnailL" class="block mb-2 font-medium text-gray-700">
+          {$t('thumbnailL')}
+        </label>
+        <input
+          id="thumbnailL"
+          type="url"
+          bind:value={thumbnailLUrl}
+          placeholder={$t('thumbnailUrlPlaceholder')}
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {#if thumbnailLUrl && isValidUrl(thumbnailLUrl)}
+          <ImagePreview url={thumbnailLUrl} onSizeLoaded={(size) => thumbnailLSize = size} recommendedSize={{ width: 256, height: 256 }} />
+        {/if}
+      </div>
+
+      <div>
+        <label for="thumbnailM" class="block mb-2 font-medium text-gray-700">
+          {$t('thumbnailM')}
+        </label>
+        <input
+          id="thumbnailM"
+          type="url"
+          bind:value={thumbnailMUrl}
+          placeholder={$t('thumbnailUrlPlaceholder')}
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {#if thumbnailMUrl && isValidUrl(thumbnailMUrl)}
+          <ImagePreview url={thumbnailMUrl} onSizeLoaded={(size) => thumbnailMSize = size} recommendedSize={{ width: 64, height: 64 }} />
+        {/if}
+      </div>
+
+      <div>
+        <label for="thumbnailS" class="block mb-2 font-medium text-gray-700">
+          {$t('thumbnailS')}
+        </label>
+        <input
+          id="thumbnailS"
+          type="url"
+          bind:value={thumbnailSUrl}
+          placeholder={$t('thumbnailUrlPlaceholder')}
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {#if thumbnailSUrl && isValidUrl(thumbnailSUrl)}
+          <ImagePreview url={thumbnailSUrl} onSizeLoaded={(size) => thumbnailSSize = size} recommendedSize={{ width: 32, height: 32 }} />
+        {/if}
+      </div>
+
+      <div>
+        <label for="thumbnailXs" class="block mb-2 font-medium text-gray-700">
+          {$t('thumbnailXs')}
+        </label>
+        <input
+          id="thumbnailXs"
+          type="url"
+          bind:value={thumbnailXsUrl}
+          placeholder={$t('thumbnailUrlPlaceholder')}
+          class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {#if thumbnailXsUrl && isValidUrl(thumbnailXsUrl)}
+          <ImagePreview url={thumbnailXsUrl} onSizeLoaded={(size) => thumbnailXsSize = size} recommendedSize={{ width: 16, height: 16 }} />
+        {/if}
+      </div>
+    </div>
 
     <button 
       type="submit" 

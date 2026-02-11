@@ -89,9 +89,33 @@ const translations: Translations = {
     en: 'e.g., You can upload images and get URLs using ehagaki',
     ja: 'eg. ehagakiで画像をアップロードしてURLを取得できます',
   },
-  thumbnailUrl: {
-    en: 'Thumbnail URL (optional)',
-    ja: 'サムネイルURL (任意)',
+  thumbnailsSection: {
+    en: 'Thumbnails (optional)',
+    ja: 'サムネイル (任意)',
+  },
+  thumbnailsHint: {
+    en: 'Recommended sizes: 512x512 (xl), 256x256 (l), 64x64 (m), 32x32 (s), 16x16 (xs)',
+    ja: '推奨サイズ: 512x512 (xl), 256x256 (l), 64x64 (m), 32x32 (s), 16x16 (xs)',
+  },
+  thumbnailXl: {
+    en: 'Thumbnail XL (512x512)',
+    ja: 'サムネイル XL (512x512)',
+  },
+  thumbnailL: {
+    en: 'Thumbnail L (256x256)',
+    ja: 'サムネイル L (256x256)',
+  },
+  thumbnailM: {
+    en: 'Thumbnail M (64x64)',
+    ja: 'サムネイル M (64x64)',
+  },
+  thumbnailS: {
+    en: 'Thumbnail S (32x32)',
+    ja: 'サムネイル S (32x32)',
+  },
+  thumbnailXs: {
+    en: 'Thumbnail XS (16x16)',
+    ja: 'サムネイル XS (16x16)',
   },
   thumbnailUrlPlaceholder: {
     en: 'https://example.com/thumbnail.png',
