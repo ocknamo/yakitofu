@@ -264,4 +264,4 @@ npm run lint:fix
 **最終更新**: 2026/02/12  
 **対象バージョン**: yaki-tofu-app v0.0.0  
 **Svelte**: 5.45.2  
-**Node.js**: 18+
+**Node.js**: 22+
