@@ -1,8 +1,12 @@
 {
   "name": "yaki-tofu-app",
-  "private": true,
+  "private": false,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
