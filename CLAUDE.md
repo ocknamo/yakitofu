@@ -6,12 +6,12 @@
 
 Yakitofu は NIP-58 準拠の Nostr バッジ作成・付与 Web アプリケーションです。ユーザーはバッジを定義（kind 30009 イベント）し、他のユーザーへ付与（kind 8 イベント）できます。認証は NIP-07 ブラウザ拡張機能（`window.nostr`）を使用します。
 
-アプリのディレクトリは `yaki-tofu-app/` です。以下のコマンドはすべてそのサブディレクトリで実行してください。
+アプリのディレクトリは `yakitofu-app/` です。以下のコマンドはすべてそのサブディレクトリで実行してください。
 
 ## コマンド
 
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 
 npm run dev          # 開発サーバー起動
 npm run build        # 本番ビルド（dist/ に出力）
@@ -69,8 +69,21 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 - 認証：NIP-07 ブラウザ拡張機能のみ
 
 ### デプロイ
-GitHub Pages にデプロイ。ベースパスは `/yaki-tofu/`（`vite.config.ts` 内で `NODE_ENV` によって切り替え）。CI は Node.js 22.x と 24.x で実行。Volta が `package.json` で Node.js 24.13.1 を固定している。
+GitHub Pages にデプロイ。ベースパスは `/yakitofu/`（`vite.config.ts` 内で `NODE_ENV` によって切り替え）。CI は Node.js 22.x と 24.x で実行。Volta が `package.json` で Node.js 24.13.1 を固定している。
 
 ### コードスタイル（Biome）
 - シングルクォート、インデント 2 スペース、最大行幅 100 文字、末尾カンマ（ES5 スタイル）
 - インポートは Biome assist により自動整理される
+
+## 変更後の検証
+
+コード変更後は以下をすべて実行して問題がないことを確認する：
+
+```bash
+cd yakitofu-app
+
+npm run check        # 型チェック
+npm run lint         # リント
+npm run build        # ビルド
+npm run test         # テスト
+```

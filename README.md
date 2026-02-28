@@ -1,4 +1,4 @@
-# Yaki-Tofu
+# Yakitofu
 
 **Nostr NIP-58 Badge Creation & Award Application**
 
@@ -24,11 +24,11 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 
 ```bash
 # リポジトリのクローン
-git clone https://github.com/ocknamo/yaki-tofu.git
-cd yaki-tofu
+git clone https://github.com/ocknamo/yakitofu.git
+cd yakitofu
 
 # アプリケーションディレクトリに移動
-cd yaki-tofu-app
+cd yakitofu-app
 
 # 依存関係のインストール
 npm install
@@ -42,7 +42,7 @@ npm run dev
 ## プロジェクト構成
 
 ```
-yaki-tofu/
+yakitofu/
 ├── README.md                    # 本ファイル（プロジェクト概要）
 ├── AGENTS.md                    # AIエージェント向けガイド
 ├── .gitignore                   # Git除外設定
@@ -58,7 +58,7 @@ yaki-tofu/
 │   │   └── deploy.yml         # GitHub Pagesデプロイ
 │   └── README.md               # GitHub Actions説明
 │
-└── yaki-tofu-app/              # メインアプリケーション
+└── yakitofu-app/               # メインアプリケーション
     ├── README.md               # アプリ固有のREADME
     ├── package.json            # 依存関係とスクリプト
     ├── vite.config.ts          # Viteビルド設定
@@ -92,7 +92,7 @@ yaki-tofu/
 
 ## ドキュメント
 
-- **[yaki-tofu-app/README.md](./yaki-tofu-app/README.md)** - アプリケーションの詳細な使い方
+- **[yakitofu-app/README.md](./yakitofu-app/README.md)** - アプリケーションの詳細な使い方
 - **[AGENTS.md](./AGENTS.md)** - AIエージェント向けの開発ガイド
 - **[docs/SVELTE_INIT.md](./docs/SVELTE_INIT.md)** - Svelteプロジェクトのセットアップ手順
 - **[.github/README.md](./.github/README.md)** - CI/CDパイプラインの説明
@@ -101,7 +101,7 @@ yaki-tofu/
 ## 開発コマンド
 
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 
 # 開発サーバー起動
 npm run dev
@@ -163,11 +163,11 @@ NIP-58は、Nostrプロトコルでバッジを定義・授与・表示するた
 
 ## ライセンス
 
-MIT License - 詳細は [yaki-tofu-app/LICENSE](./yaki-tofu-app/LICENSE) を参照してください。
+MIT License - 詳細は [yakitofu-app/LICENSE](./yakitofu-app/LICENSE) を参照してください。
 
 ## 問題報告
 
-バグや機能要望は [GitHub Issues](https://github.com/ocknamo/yaki-tofu/issues) で報告してください。
+バグや機能要望は [GitHub Issues](https://github.com/ocknamo/yakitofu/issues) で報告してください。
 
 ## 作者
 

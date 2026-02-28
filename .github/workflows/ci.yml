@@ -26,28 +26,28 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-          cache-dependency-path: './yaki-tofu-app/package-lock.json'
-      
+          cache-dependency-path: './yakitofu-app/package-lock.json'
+
       - name: Install dependencies
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm ci
-      
+
       - name: Check formatting
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm run format:check
-      
+
       - name: Run linter
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm run lint
-      
+
       - name: Type check
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm run check
-      
+
       - name: Build
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm run build
-      
+
       - name: Run tests
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm run test

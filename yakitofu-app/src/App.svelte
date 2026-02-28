@@ -96,7 +96,7 @@ onMount(() => {
 	<footer class="bg-gray-100 border-t border-gray-200 py-4 mt-8">
 		<div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">
 			<a 
-				href="https://github.com/ocknamo/yaki-tofu" 
+				href="https://github.com/ocknamo/yakitofu"
 				target="_blank" 
 				rel="noopener noreferrer"
 				class="hover:text-orange-500 transition-colors flex items-center gap-1"

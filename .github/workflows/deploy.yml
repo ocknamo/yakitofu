@@ -26,17 +26,17 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: './yaki-tofu-app/package-lock.json'
+          cache-dependency-path: './yakitofu-app/package-lock.json'
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         run: npm ci
 
       - name: Build site
-        working-directory: ./yaki-tofu-app
+        working-directory: ./yakitofu-app
         env:
           NODE_ENV: production
         run: npm run build
@@ -44,7 +44,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: ./yaki-tofu-app/dist
+          path: ./yakitofu-app/dist
 
   deploy:
     environment:

@@ -6,7 +6,7 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 export default defineConfig({
 	plugins: [tailwindcss(), svelte()],
 	// GitHub Pages deployment configuration
-	// If deploying to https://<USERNAME>.github.io/yaki-tofu/, set base to '/yaki-tofu/'
+	// If deploying to https://<USERNAME>.github.io/yakitofu/, set base to '/yakitofu/'
 	// If using a custom domain, remove or set base to '/'
-	base: process.env.NODE_ENV === 'production' ? '/yaki-tofu/' : '/',
+	base: process.env.NODE_ENV === 'production' ? '/yakitofu/' : '/',
 });

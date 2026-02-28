@@ -44,7 +44,7 @@ AIエージェント向けプロジェクトガイド
 
 ### プロジェクトドキュメント
 ```
-/yaki-tofu-app/README.md          # アプリケーションの基本説明・使い方
+/yakitofu-app/README.md          # アプリケーションの基本説明・使い方
 /docs/SVELTE_INIT.md              # Svelteプロジェクトのセットアップ手順
 /AGENTS.md                        # 本ファイル（AI向けガイド）
 ```
@@ -63,17 +63,17 @@ AIエージェント向けプロジェクトガイド
 
 ### 設定ファイル
 ```
-/yaki-tofu-app/package.json       # 依存関係とスクリプト
-/yaki-tofu-app/biome.json         # Biome設定（Svelte 5対応済み）
-/yaki-tofu-app/vite.config.ts     # Viteビルド設定
-/yaki-tofu-app/tsconfig.json      # TypeScript設定
-/yaki-tofu-app/svelte.config.js   # Svelte設定
+/yakitofu-app/package.json       # 依存関係とスクリプト
+/yakitofu-app/biome.json         # Biome設定（Svelte 5対応済み）
+/yakitofu-app/vite.config.ts     # Viteビルド設定
+/yakitofu-app/tsconfig.json      # TypeScript設定
+/yakitofu-app/svelte.config.js   # Svelte設定
 ```
 
 ## ファイル構成
 
 ```
-yaki-tofu/
+yakitofu/
 ├── AGENTS.md                     # 本ファイル
 ├── .gitignore                    # Git除外設定（ルート）
 ├── docs/                         # ドキュメント
@@ -81,7 +81,7 @@ yaki-tofu/
 │   ├── nips/                    # NIP仕様書
 │   └── rx-nostr/                # rx-nostrドキュメント
 │
-└── yaki-tofu-app/               # メインアプリケーション
+└── yakitofu-app/                # メインアプリケーション
     ├── package.json             # 依存関係定義
     ├── vite.config.ts           # Viteビルド設定
     ├── tsconfig.json            # TypeScript設定
@@ -166,7 +166,7 @@ rxNostr.send(event).subscribe({
 
 ### 基本チェック（必須）
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 
 # 依存関係のインストール確認
 npm install
@@ -186,26 +186,26 @@ npm run build
 
 ### 開発サーバー起動
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 npm run dev
 # ブラウザで http://localhost:5173 を開く
 ```
 
 ### プレビュー（本番ビルドの確認）
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 npm run preview
 ```
 
 ### テスト実行
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 npm run test
 ```
 
 ### コードの自動修正
 ```bash
-cd yaki-tofu-app
+cd yakitofu-app
 
 # フォーマットとリント自動修正
 npm run format
@@ -237,14 +237,14 @@ npm run lint:fix
 
 ### 新しいコンポーネント追加
 ```bash
-# 場所: /yaki-tofu-app/src/lib/components/
+# 場所: /yakitofu-app/src/lib/components/
 # 命名: PascalCase.svelte
 # Svelte 5のrunes構文を使用
 ```
 
 ### 新しいストア追加
 ```bash
-# 場所: /yaki-tofu-app/src/lib/stores/
+# 場所: /yakitofu-app/src/lib/stores/
 # writable, derived等のsvelte/storeを使用
 ```
 
@@ -262,6 +262,6 @@ npm run lint:fix
 ---
 
 **最終更新**: 2026/02/12  
-**対象バージョン**: yaki-tofu-app v0.0.0  
+**対象バージョン**: yakitofu-app v0.0.0  
 **Svelte**: 5.45.2  
 **Node.js**: 22+
