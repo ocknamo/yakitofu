@@ -1,5 +1,11 @@
 <script lang="ts">
 import { getBadgeAwardees, getBadgeDefinition, getUserProfiles, waitForConnection } from '../services/nostr';
+import {
+  getCachedBadgeDefinition,
+  getCachedProfiles,
+  setCachedBadgeDefinition,
+  setCachedProfile,
+} from '../services/indexedDbCache';
 import { languageStore, t } from '../stores/i18n';
 import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
@@ -37,7 +43,17 @@ async function fetchProfiles(pubkeys: string[]) {
     return;
   }
 
-  const { observable, req, filters } = getUserProfiles(uncachedPubkeys);
+  // IndexedDB キャッシュから取得してインメモリに昇格
+  const idbCached = await getCachedProfiles(uncachedPubkeys).catch(() => new Map<string, UserProfile>());
+  for (const [pk, profile] of idbCached) {
+    profileCache.set(pk, profile);
+  }
+  awardees = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
+
+  const stillUncached = uncachedPubkeys.filter((pk) => !profileCache.has(pk));
+  if (stillUncached.length === 0) return;
+
+  const { observable, req, filters } = getUserProfiles(stillUncached);
 
   const timeoutId = setTimeout(() => {
     req.emit(filters);
@@ -50,6 +66,7 @@ async function fetchProfiles(pubkeys: string[]) {
       next: (packet) => {
         const profile = parseUserProfile(packet.event);
         profileCache.set(profile.pubkey, profile);
+        setCachedProfile(profile).catch(console.error);
       },
       error: () => {
         clearTimeout(timeoutResolve);
@@ -71,34 +88,61 @@ async function fetchProfiles(pubkeys: string[]) {
 // Fetch badge definition
 $effect(() => {
   let cancelled = false;
-  badge = null;
+  // badge をリセットしない — 遷移中も古いコンテンツを表示してちらつきを防ぐ
+  // 未発見確定時（タイムアウト・エラー）にのみ null にする
   loadingBadge = true;
   badgeError = '';
 
   const { observable, req, filters } = getBadgeDefinition(pubkey, dTag);
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  // このeffect実行でバッジが見つかったかを追跡
+  let foundBadge = false;
+
+  // IndexedDB キャッシュを先に確認して即表示
+  getCachedBadgeDefinition(pubkey, dTag)
+    .then((cached) => {
+      if (cancelled) return;
+      if (cached) {
+        badge = cached;
+        loadingBadge = false;
+        foundBadge = true;
+      }
+    })
+    .catch(console.error);
 
   const subscription = observable.subscribe({
     next: (packet) => {
+      if (cancelled) return;
       const event = packet.event;
       // Client-side validation: ensure pubkey and dTag match
       if (event.pubkey !== pubkey) return;
       const eventDTag = event.tags.find((tag: string[]) => tag[0] === 'd')?.[1];
       if (eventDTag !== dTag) return;
 
-      badge = parseBadgeEvent(event);
+      const parsed = parseBadgeEvent(event);
+      setCachedBadgeDefinition(pubkey, parsed).catch(console.error);
+      // 同一イベントがリレーから返ってきた場合は再レンダリングをスキップ（ちらつき防止）
+      if (!badge || badge.id !== parsed.id) {
+        badge = parsed;
+      }
       loadingBadge = false;
+      foundBadge = true;
       clearTimeout(timeoutId);
     },
     error: () => {
+      if (cancelled) return;
       clearTimeout(timeoutId);
       loadingBadge = false;
-      badgeError = $t('badgeNotFound');
+      if (!foundBadge) {
+        badge = null;
+        badgeError = $t('badgeNotFound');
+      }
     },
     complete: () => {
+      if (cancelled) return;
       // バッジが見つかった場合のみタイムアウトをキャンセルして終了
       // 見つかっていない場合はタイムアウトに判定を委ねる（EOSEが早期に来た可能性）
-      if (badge) {
+      if (foundBadge) {
         clearTimeout(timeoutId);
         loadingBadge = false;
       }
@@ -110,7 +154,10 @@ $effect(() => {
     if (cancelled) return;
     timeoutId = setTimeout(() => {
       loadingBadge = false;
-      if (!badge) badgeError = $t('badgeNotFound');
+      if (!foundBadge) {
+        badge = null;
+        badgeError = $t('badgeNotFound');
+      }
     }, 5000);
     req.emit(filters);
   });
@@ -240,11 +287,7 @@ function getInitial(entry: AwardeeEntry): string {
     {$t('backToApp')}
   </button>
 
-  {#if loadingBadge}
-    <div class="text-center py-12 text-gray-500">{$t('loadingBadge')}</div>
-  {:else if badgeError}
-    <div class="text-center py-12 text-gray-500">{badgeError}</div>
-  {:else if badge}
+  {#if badge}
     <!-- Badge info -->
     <div class="mb-8">
       <!-- Badge image -->
@@ -343,5 +386,9 @@ function getInitial(entry: AwardeeEntry): string {
         </ul>
       {/if}
     </div>
+  {:else if loadingBadge}
+    <div class="text-center py-12 text-gray-500">{$t('loadingBadge')}</div>
+  {:else if badgeError}
+    <div class="text-center py-12 text-gray-500">{badgeError}</div>
   {/if}
 </div>
