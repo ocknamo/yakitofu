@@ -349,7 +349,18 @@ function getInitial(entry: AwardeeEntry): string {
       <h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('badgeAwardees')}</h3>
 
       {#if loadingAwardees}
-        <div class="text-center py-8 text-gray-500">{$t('loadingAwardees')}</div>
+        <ul class="divide-y divide-gray-100">
+          {#each Array(3) as _}
+            <li class="py-4 flex items-center gap-4 animate-pulse">
+              <div class="w-10 h-10 rounded-full bg-gray-200 shrink-0"></div>
+              <div class="flex-1 min-w-0 space-y-2">
+                <div class="h-4 w-32 bg-gray-200 rounded"></div>
+                <div class="h-3 w-24 bg-gray-200 rounded"></div>
+              </div>
+              <div class="h-4 w-20 bg-gray-200 rounded shrink-0"></div>
+            </li>
+          {/each}
+        </ul>
       {:else if sortedAwardees.length === 0}
         <div class="text-center py-8 text-gray-500">{$t('noAwardees')}</div>
       {:else}
@@ -361,11 +372,11 @@ function getInitial(entry: AwardeeEntry): string {
                 <img
                   src={entry.profile.picture}
                   alt={getDisplayName(entry)}
-                  class="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                  class="w-10 h-10 rounded-full object-cover shrink-0"
                 />
               {:else}
                 <div
-                  class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold flex-shrink-0"
+                  class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold shrink-0"
                 >
                   {getInitial(entry)}
                 </div>
@@ -378,7 +389,7 @@ function getInitial(entry: AwardeeEntry): string {
               </div>
 
               <!-- Date -->
-              <div class="text-sm text-gray-400 flex-shrink-0">
+              <div class="text-sm text-gray-400 shrink-0">
                 {formatDate(entry.createdAt)}
               </div>
             </li>
@@ -387,7 +398,41 @@ function getInitial(entry: AwardeeEntry): string {
       {/if}
     </div>
   {:else if loadingBadge}
-    <div class="text-center py-12 text-gray-500">{$t('loadingBadge')}</div>
+    <!-- Badge skeleton -->
+    <div class="mb-8 animate-pulse">
+      <div class="flex justify-center mb-6">
+        <div class="w-72 h-72 bg-gray-200 rounded-lg"></div>
+      </div>
+      <div class="flex justify-center mb-2">
+        <div class="h-8 w-48 bg-gray-200 rounded"></div>
+      </div>
+      <div class="flex justify-center mb-6">
+        <div class="h-5 w-72 bg-gray-200 rounded"></div>
+      </div>
+      <div class="w-72 mx-auto space-y-2">
+        <div class="h-4 w-32 bg-gray-200 rounded"></div>
+        <div class="h-4 w-48 bg-gray-200 rounded"></div>
+      </div>
+      <div class="mt-4 flex justify-center">
+        <div class="h-9 w-36 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+    <!-- Awardees skeleton -->
+    <div>
+      <div class="h-6 w-32 bg-gray-200 rounded mb-4 animate-pulse"></div>
+      <ul class="divide-y divide-gray-100">
+        {#each Array(3) as _}
+          <li class="py-4 flex items-center gap-4 animate-pulse">
+            <div class="w-10 h-10 rounded-full bg-gray-200 shrink-0"></div>
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="h-4 w-32 bg-gray-200 rounded"></div>
+              <div class="h-3 w-24 bg-gray-200 rounded"></div>
+            </div>
+            <div class="h-4 w-20 bg-gray-200 rounded shrink-0"></div>
+          </li>
+        {/each}
+      </ul>
+    </div>
   {:else if badgeError}
     <div class="text-center py-12 text-gray-500">{badgeError}</div>
   {/if}
