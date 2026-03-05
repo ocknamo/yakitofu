@@ -6,6 +6,7 @@ import {
   setCachedBadgeDefinition,
   setCachedProfile,
 } from '../services/indexedDbCache';
+import ProgressiveImage from './ProgressiveImage.svelte';
 import { languageStore, t } from '../stores/i18n';
 import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
@@ -293,10 +294,11 @@ function getInitial(entry: AwardeeEntry): string {
       <!-- Badge image -->
       <div class="flex justify-center mb-6">
         {#if badge.imageUrl}
-          <img
+          <ProgressiveImage
             src={badge.imageUrl}
+            placeholderSrc={badge.thumbnails.xs || badge.thumbnails.s || badge.thumbnails.m || ''}
             alt={badge.name}
-            class="w-72 h-72 object-contain rounded-lg"
+            class="w-72 h-72 rounded-lg"
           />
         {:else}
           <div class="w-72 h-72 flex items-center justify-center text-8xl bg-gray-50 rounded-lg">
