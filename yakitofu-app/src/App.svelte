@@ -3,6 +3,7 @@ import './app.css';
 import { onMount } from 'svelte';
 import BadgeAwardForm from './lib/components/BadgeAwardForm.svelte';
 import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
+import BadgePage from './lib/components/BadgePage.svelte';
 import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
 import LoginButton from './lib/components/LoginButton.svelte';
 import RelaySettings from './lib/components/RelaySettings.svelte';
@@ -10,10 +11,38 @@ import { initializeRelays } from './lib/services/nostr';
 import { authStore } from './lib/stores/auth';
 import { t } from './lib/stores/i18n';
 import { relayStore } from './lib/stores/relay';
+import { npubToHex } from './lib/utils/npubConverter';
 
 type Tab = 'create' | 'award' | 'settings';
 
 let activeTab: Tab = $state('create');
+
+// Hash routing: #/badge/<npub>:<dTag>
+// npub = npub1 + 58 bech32 chars = 63 chars total
+// dTag = [a-z0-9-]+
+function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
+  const match = hash.match(
+    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-z0-9-]+)$/
+  );
+  if (!match) return null;
+  try {
+    const pubkey = npubToHex(match[1]);
+    return { pubkey, dTag: match[2] };
+  } catch {
+    return null;
+  }
+}
+
+let currentHash = $state(window.location.hash);
+let badgeRoute = $derived(parseBadgeRoute(currentHash));
+
+$effect(() => {
+  const onHashChange = () => {
+    currentHash = window.location.hash;
+  };
+  window.addEventListener('hashchange', onHashChange);
+  return () => window.removeEventListener('hashchange', onHashChange);
+});
 
 // Initialize relays when relay settings change
 $effect(() => {
@@ -46,52 +75,62 @@ onMount(() => {
 		</div>
 	</header>
 
+	{#if !badgeRoute}
 	<div class="flex place-content-center sm:hidden p-2border-b border-gray-200">
 		<LoginButton />
 	</div>
+	{/if}
 
-	<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
-		<div class="mb-6 md:mb-8 border-b-2 border-gray-200">
-			<div class="flex gap-0">
-				<button
-					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'create'
-						? 'border-b-orange-500 text-orange-500 font-semibold'
-						: 'border-transparent hover:text-orange-500'}"
-					onclick={() => activeTab = 'create'}
-				>
-					{$t('createBadge')}
-				</button>
-
-				<button
-					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'award'
-						? 'border-b-orange-500 text-orange-500 font-semibold'
-						: 'border-transparent hover:text-orange-500'}"
-					onclick={() => activeTab = 'award'}
-				>
-					{$t('awardBadge')}
-				</button>
-
-				<button
-					class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'settings'
-						? 'border-b-orange-500 text-orange-500 font-semibold'
-						: 'border-transparent hover:text-orange-500'}"
-					onclick={() => activeTab = 'settings'}
-				>
-					{$t('settings')}
-				</button>
+	{#if badgeRoute}
+		<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
+			<div class="p-4 md:p-8">
+				<BadgePage pubkey={badgeRoute.pubkey} dTag={badgeRoute.dTag} />
 			</div>
 		</div>
+	{:else}
+		<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
+			<div class="mb-6 md:mb-8 border-b-2 border-gray-200">
+				<div class="flex gap-0">
+					<button
+						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'create'
+							? 'border-b-orange-500 text-orange-500 font-semibold'
+							: 'border-transparent hover:text-orange-500'}"
+						onclick={() => activeTab = 'create'}
+					>
+						{$t('createBadge')}
+					</button>
 
-		<div class="p-4 md:p-8">
-			{#if activeTab === 'create'}
-				<BadgeDefinitionForm />
-			{:else if activeTab === 'award'}
-				<BadgeAwardForm />
-			{:else if activeTab === 'settings'}
-				<RelaySettings />
-			{/if}
+					<button
+						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'award'
+							? 'border-b-orange-500 text-orange-500 font-semibold'
+							: 'border-transparent hover:text-orange-500'}"
+						onclick={() => activeTab = 'award'}
+					>
+						{$t('awardBadge')}
+					</button>
+
+					<button
+						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'settings'
+							? 'border-b-orange-500 text-orange-500 font-semibold'
+							: 'border-transparent hover:text-orange-500'}"
+						onclick={() => activeTab = 'settings'}
+					>
+						{$t('settings')}
+					</button>
+				</div>
+			</div>
+
+			<div class="p-4 md:p-8">
+				{#if activeTab === 'create'}
+					<BadgeDefinitionForm />
+				{:else if activeTab === 'award'}
+					<BadgeAwardForm />
+				{:else if activeTab === 'settings'}
+					<RelaySettings />
+				{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<footer class="bg-gray-100 border-t border-gray-200 py-4 mt-8">
 		<div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600">

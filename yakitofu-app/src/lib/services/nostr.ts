@@ -96,6 +96,65 @@ export function getUserBadgeDefinitions(pubkey: string) {
   return { observable, req, filters };
 }
 
+// Get a specific badge definition (kind 30009, filtered by author and d tag)
+export function getBadgeDefinition(pubkey: string, dTag: string) {
+  const filters = [
+    {
+      kinds: [30009],
+      authors: [pubkey],
+      '#d': [dTag],
+    },
+  ];
+
+  const { observable, req } = fetchPastEvents(filters);
+
+  return { observable, req, filters };
+}
+
+// Get badge awardee events (kind 8, filtered by a tag)
+export function getBadgeAwardees(issuerPubkey: string, dTag: string) {
+  const aTag = `30009:${issuerPubkey}:${dTag}`;
+  const filters = [
+    {
+      kinds: [8],
+      '#a': [aTag],
+    },
+  ];
+
+  const { observable, req } = fetchPastEvents(filters);
+
+  return { observable, req, filters };
+}
+
+// Get user profiles in bulk (kind 0)
+export function getUserProfiles(pubkeys: string[]) {
+  const filters = [
+    {
+      kinds: [0],
+      authors: pubkeys,
+    },
+  ];
+
+  const { observable, req } = fetchPastEvents(filters);
+
+  return { observable, req, filters };
+}
+
+// Wait for at least one relay to be connected (or timeout)
+export function waitForConnection(timeoutMs = 3000): Promise<void> {
+  return new Promise((resolve) => {
+    const stateObs = rxNostr.createConnectionStateObservable();
+    const timeoutId = setTimeout(resolve, timeoutMs);
+    const sub = stateObs.subscribe((packet) => {
+      if (packet.state === 'connected') {
+        clearTimeout(timeoutId);
+        sub.unsubscribe();
+        resolve();
+      }
+    });
+  });
+}
+
 // Cleanup
 export function cleanup() {
   if (connectionStateSubscription) {

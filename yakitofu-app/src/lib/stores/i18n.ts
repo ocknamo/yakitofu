@@ -237,6 +237,54 @@ const translations: Translations = {
     en: 'NIP-58 Specification',
     ja: 'NIP-58 仕様',
   },
+
+  // Badge creator
+  badgeCreator: {
+    en: 'Creator',
+    ja: '発行者',
+  },
+
+  // Badge detail page
+  badgeDetailTitle: {
+    en: 'Badge Detail',
+    ja: 'バッジ詳細',
+  },
+  badgeAwardees: {
+    en: 'Awardees',
+    ja: '受賞者',
+  },
+  loadingBadge: {
+    en: 'Loading badge...',
+    ja: 'バッジを読み込み中...',
+  },
+  loadingAwardees: {
+    en: 'Loading awardees...',
+    ja: '受賞者を読み込み中...',
+  },
+  noAwardees: {
+    en: 'No awardees yet.',
+    ja: 'まだ受賞者はいません。',
+  },
+  badgeNotFound: {
+    en: 'Badge not found.',
+    ja: 'バッジが見つかりませんでした。',
+  },
+  backToApp: {
+    en: 'Back to App',
+    ja: 'アプリに戻る',
+  },
+  unknownUser: {
+    en: 'Unknown User',
+    ja: '不明なユーザー',
+  },
+  copyLink: {
+    en: 'Copy Link',
+    ja: 'リンクをコピー',
+  },
+  linkCopied: {
+    en: 'Copied!',
+    ja: 'コピーしました！',
+  },
 };
 
 function createI18nStore() {
