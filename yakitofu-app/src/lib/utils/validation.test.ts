@@ -3,6 +3,10 @@ import { isValidBadgeId, isValidUrl, isValidWebSocketUrl, isValidNpub } from './
 
 describe('validation', () => {
   describe('isValidBadgeId', () => {
+    it('should accept empty string', () => {
+      expect(isValidBadgeId('')).toBe(true);
+    });
+
     it('should accept valid badge IDs with letters, numbers, hyphens, and underscores', () => {
       expect(isValidBadgeId('my-badge')).toBe(true);
       expect(isValidBadgeId('badge123')).toBe(true);
@@ -44,10 +48,6 @@ describe('validation', () => {
       expect(isValidBadgeId('badge id')).toBe(false);
       expect(isValidBadgeId(' badge')).toBe(false);
       expect(isValidBadgeId('badge ')).toBe(false);
-    });
-
-    it('should reject empty strings', () => {
-      expect(isValidBadgeId('')).toBe(false);
     });
   });
 

@@ -3,7 +3,8 @@
 export function isValidBadgeId(id: string): boolean {
   // Badge ID accepts alphanumeric and most special characters
   // Excludes URL delimiters: / ? : # @ and spaces
-  return /^[a-zA-Z0-9\-_.~!$&'()*+,;=%]+$/.test(id);
+  // Also allows empty string
+  return id === '' || /^[a-zA-Z0-9\-_.~!$&'()*+,;=%]+$/.test(id);
 }
 
 export function isValidUrl(url: string): boolean {

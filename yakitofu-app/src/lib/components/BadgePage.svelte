@@ -192,7 +192,11 @@ function getInitial(entry: AwardeeEntry): string {
       <div class="w-72 mx-auto space-y-2 text-sm text-gray-500">
         <div class="flex gap-2">
           <span class="font-medium text-gray-700">ID:</span>
-          <span class="font-mono truncate" title={badge.dTag}>{badge.dTag.length > 40 ? badge.dTag.slice(0, 40) + '...' : badge.dTag}</span>
+          {#if badge.dTag === ''}
+            <span class="text-gray-400">{$t('noBadgeId')}</span>
+          {:else}
+            <span class="font-mono truncate" title={badge.dTag}>{badge.dTag.length > 40 ? badge.dTag.slice(0, 40) + '...' : badge.dTag}</span>
+          {/if}
         </div>
         <div class="flex gap-2 flex-wrap items-baseline">
           <span class="font-medium text-gray-700">{$t('badgeCreator')}:</span>

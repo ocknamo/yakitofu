@@ -57,6 +57,10 @@ const translations: Translations = {
     en: 'Badge ID',
     ja: 'バッジID',
   },
+  noBadgeId: {
+    en: 'No ID',
+    ja: 'IDなし',
+  },
   badgeIdPlaceholder: {
     en: 'e.g., bravery',
     ja: '例: bravery',
