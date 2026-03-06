@@ -15,10 +15,35 @@ describe('validation', () => {
       expect(isValidBadgeId('badge_id')).toBe(true);
     });
 
-    it('should reject badge IDs with special characters', () => {
-      expect(isValidBadgeId('badge.id')).toBe(false);
-      expect(isValidBadgeId('badge@id')).toBe(false);
+    it('should accept badge IDs with most special characters', () => {
+      expect(isValidBadgeId('badge!id')).toBe(true);
+      expect(isValidBadgeId('badge$id')).toBe(true);
+      expect(isValidBadgeId('badge&id')).toBe(true);
+      expect(isValidBadgeId("badge'id")).toBe(true);
+      expect(isValidBadgeId('badge(id)')).toBe(true);
+      expect(isValidBadgeId('badge*id')).toBe(true);
+      expect(isValidBadgeId('badge+id')).toBe(true);
+      expect(isValidBadgeId('badge,id')).toBe(true);
+      expect(isValidBadgeId('badge;id')).toBe(true);
+      expect(isValidBadgeId('badge=id')).toBe(true);
+      expect(isValidBadgeId('badge%id')).toBe(true);
+      expect(isValidBadgeId('badge.id')).toBe(true);
+      expect(isValidBadgeId('badge~id')).toBe(true);
+      expect(isValidBadgeId('badge_id')).toBe(true);
+    });
+
+    it('should reject badge IDs with URL delimiters', () => {
+      expect(isValidBadgeId('badge/id')).toBe(false); // Slash
+      expect(isValidBadgeId('badge?id')).toBe(false); // Question mark
+      expect(isValidBadgeId('badge:id')).toBe(false); // Colon
+      expect(isValidBadgeId('badge#id')).toBe(false); // Hash
+      expect(isValidBadgeId('badge@id')).toBe(false); // At sign
+    });
+
+    it('should reject badge IDs with spaces', () => {
       expect(isValidBadgeId('badge id')).toBe(false);
+      expect(isValidBadgeId(' badge')).toBe(false);
+      expect(isValidBadgeId('badge ')).toBe(false);
     });
 
     it('should reject empty strings', () => {

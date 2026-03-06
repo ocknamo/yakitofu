@@ -1,8 +1,9 @@
 // Validation utilities
 
 export function isValidBadgeId(id: string): boolean {
-  // Badge ID should be alphanumeric with hyphens
-  return /^[a-zA-Z0-9_-]+$/.test(id);
+  // Badge ID accepts alphanumeric and most special characters
+  // Excludes URL delimiters: / ? : # @ and spaces
+  return /^[a-zA-Z0-9\-_.~!$&'()*+,;=%]+$/.test(id);
 }
 
 export function isValidUrl(url: string): boolean {

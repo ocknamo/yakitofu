@@ -22,10 +22,10 @@ let activeTab: Tab = $state('create');
 
 // Hash routing: #/badge/<npub>:<dTag>
 // npub = npub1 + 58 bech32 chars = 63 chars total
-// dTag = [a-z0-9-]+
+// dTag = alphanumeric and most special characters (excludes URL delimiters)
 function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
   const match = hash.match(
-    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-zA-Z0-9_-]+)$/
+    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-zA-Z0-9\-_.~!$&'()*+,;=%]+)$/
   );
   if (!match) return null;
   try {
@@ -38,7 +38,7 @@ function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null 
 
 // Hash routing: #/search/<dTag>
 function parseSearchRoute(hash: string): { dTag: string } | null {
-  const match = hash.match(/^#\/search\/([a-zA-Z0-9_-]+)$/);
+  const match = hash.match(/^#\/search\/([a-zA-Z0-9\-_.~!$&'()*+,;=%]+)$/);
   if (!match) return null;
   return { dTag: match[1] };
 }
