@@ -7,6 +7,7 @@ import BadgePage from './lib/components/BadgePage.svelte';
 import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
 import LoginButton from './lib/components/LoginButton.svelte';
 import RelaySettings from './lib/components/RelaySettings.svelte';
+import UserPage from './lib/components/UserPage.svelte';
 import { initializeRelays } from './lib/services/nostr';
 import { authStore } from './lib/stores/auth';
 import { t } from './lib/stores/i18n';
@@ -33,8 +34,21 @@ function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null 
   }
 }
 
+// Hash routing: #/user/<npub>
+function parseUserRoute(hash: string): { pubkey: string } | null {
+  const match = hash.match(/^#\/user\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58})$/);
+  if (!match) return null;
+  try {
+    const pubkey = npubToHex(match[1]);
+    return { pubkey };
+  } catch {
+    return null;
+  }
+}
+
 let currentHash = $state(window.location.hash);
 let badgeRoute = $derived(parseBadgeRoute(currentHash));
+let userRoute = $derived(parseUserRoute(currentHash));
 
 $effect(() => {
   const onHashChange = () => {
@@ -75,7 +89,7 @@ onMount(() => {
 		</div>
 	</header>
 
-	{#if !badgeRoute}
+	{#if !badgeRoute && !userRoute}
 	<div class="flex place-content-center sm:hidden p-2border-b border-gray-200">
 		<LoginButton />
 	</div>
@@ -85,6 +99,12 @@ onMount(() => {
 		<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
 			<div class="p-4 md:p-8">
 				<BadgePage pubkey={badgeRoute.pubkey} dTag={badgeRoute.dTag} />
+			</div>
+		</div>
+	{:else if userRoute}
+		<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
+			<div class="p-4 md:p-8">
+				<UserPage pubkey={userRoute.pubkey} />
 			</div>
 		</div>
 	{:else}

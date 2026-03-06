@@ -319,9 +319,9 @@ function getInitial(entry: AwardeeEntry): string {
           <span class="font-medium text-gray-700">ID:</span>
           <span class="font-mono truncate" title={badge.dTag}>{badge.dTag.length > 40 ? badge.dTag.slice(0, 40) + '...' : badge.dTag}</span>
         </div>
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2 flex-wrap items-baseline">
           <span class="font-medium text-gray-700">{$t('badgeCreator')}:</span>
-          <span class="font-mono text-xs break-all">{shortNpub(hexToNpub(pubkey))}</span>
+          <a href="#/user/{hexToNpub(pubkey)}" class="font-mono text-xs break-all text-orange-500 hover:text-orange-600 transition-colors">{shortNpub(hexToNpub(pubkey))}</a>
         </div>
       </div>
 
@@ -385,10 +385,10 @@ function getInitial(entry: AwardeeEntry): string {
               {/if}
 
               <!-- User info -->
-              <div class="flex-1 min-w-0">
+              <a href="#/user/{hexToNpub(entry.pubkey)}" class="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 <p class="font-medium text-gray-900 truncate">{getDisplayName(entry)}</p>
                 <p class="text-xs text-gray-400 font-mono truncate">{shortNpub(hexToNpub(entry.pubkey))}</p>
-              </div>
+              </a>
 
               <!-- Date -->
               <div class="text-sm text-gray-400 shrink-0">

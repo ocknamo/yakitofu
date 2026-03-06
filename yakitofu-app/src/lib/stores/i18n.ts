@@ -285,6 +285,20 @@ const translations: Translations = {
     en: 'Copied!',
     ja: 'コピーしました！',
   },
+
+  // User page
+  userBadges: {
+    en: 'Badges',
+    ja: 'バッジ一覧',
+  },
+  noBadgesCreated: {
+    en: 'No badges created yet.',
+    ja: 'まだバッジを作成していません。',
+  },
+  myPage: {
+    en: 'My Page',
+    ja: 'マイページ',
+  },
 };
 
 function createI18nStore() {
