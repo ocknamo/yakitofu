@@ -173,6 +173,35 @@ export async function getCachedBadgeDefinition(
   });
 }
 
+export async function getCachedBadgeDefinitionsByPubkey(
+  pubkey: string,
+): Promise<Map<string, BadgeDefinition>> {
+  const db = await openCacheDB();
+  const result = new Map<string, BadgeDefinition>();
+  const prefix = `${pubkey}:`;
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('badgeDefinitions', 'readonly');
+    const store = tx.objectStore('badgeDefinitions');
+    const request = store.openCursor();
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve(result);
+        return;
+      }
+      const entry = cursor.value as CachedBadgeDefinition;
+      if (entry.key.startsWith(prefix)) {
+        const { key: _key, pubkey: _pubkey, cachedAt: _cachedAt, ...badge } = entry;
+        result.set(badge.dTag, badge as BadgeDefinition);
+      }
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 export async function setCachedBadgeDefinition(
   pubkey: string,
   badge: BadgeDefinition,

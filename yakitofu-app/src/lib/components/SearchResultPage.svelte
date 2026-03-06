@@ -1,9 +1,13 @@
 <script lang="ts">
 import { searchBadgesByDTag, waitForConnection } from '../services/nostr';
+import {
+  cacheBadgeDefinition,
+  type BadgeDefinitionWithPubkey,
+} from '../services/badgeDefinitionResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
-import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
+import { parseBadgeEvent } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
 import type { NostrEvent } from '../../types/nostr';
@@ -11,11 +15,7 @@ import type { Subscription } from 'rxjs';
 
 let { dTag }: { dTag: string } = $props();
 
-interface BadgeResult extends BadgeDefinition {
-  pubkey: string;
-}
-
-let results: BadgeResult[] = $state([]);
+let results: BadgeDefinitionWithPubkey[] = $state([]);
 let loading = $state(true);
 let profiles: Map<string, UserProfile> = $state(new Map());
 
@@ -27,7 +27,7 @@ $effect(() => {
   profiles = new Map();
 
   const { observable, req, filters } = searchBadgesByDTag(dTag);
-  const seen = new Map<string, BadgeResult>();
+  const seen = new Map<string, BadgeDefinitionWithPubkey>();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   let profileSub: Subscription | null = null;
@@ -56,9 +56,11 @@ $effect(() => {
     complete: () => {
       if (cancelled) return;
       clearTimeout(timeoutId);
-      results = [...seen.values()];
+      const values = [...seen.values()];
+      for (const badge of values) cacheBadgeDefinition(badge);
+      results = values;
       loading = false;
-      fetchProfiles([...seen.values()].map((r) => r.pubkey));
+      fetchProfiles(values.map((r) => r.pubkey));
     },
     error: () => {
       if (cancelled) return;
@@ -71,9 +73,11 @@ $effect(() => {
   waitForConnection().then(() => {
     if (cancelled) return;
     timeoutId = setTimeout(() => {
-      results = [...seen.values()];
+      const values = [...seen.values()];
+      for (const badge of values) cacheBadgeDefinition(badge);
+      results = values;
       loading = false;
-      fetchProfiles([...seen.values()].map((r) => r.pubkey));
+      fetchProfiles(values.map((r) => r.pubkey));
     }, 5000);
     req.emit(filters);
   });

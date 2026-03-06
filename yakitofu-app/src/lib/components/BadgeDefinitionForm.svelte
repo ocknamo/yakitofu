@@ -3,9 +3,10 @@
   import { authStore } from '../stores/auth';
   import { t } from '../stores/i18n';
   import { isValidBadgeId, isValidUrl } from '../utils/validation';
-  import { publishEvent, getUserBadgeDefinitions } from '../services/nostr';
+  import { publishEvent } from '../services/nostr';
+  import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
   import { type ImageSize } from '../utils/imageUtils';
-  import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
+  import type { BadgeDefinition } from '../utils/badgeEventParser';
   import { buildBadgeTags } from '../utils/badgeTagBuilder';
   import ImagePreview from './ImagePreview.svelte';
   import type { NostrEvent } from '../../types/nostr';
@@ -42,7 +43,7 @@
     }
   });
 
-  async function loadMyBadges() {
+  function loadMyBadges() {
     if (!$authStore.pubkey) return;
 
     if (badgeSubscription) {
@@ -52,39 +53,20 @@
     loadingBadges = true;
     badges = [];
 
-    try {
-      const { observable, req, filters } = getUserBadgeDefinitions($authStore.pubkey);
-
-      badgeSubscription = observable.subscribe({
-        next: (packet: any) => {
-          const event = packet.event;
-          const badge = parseBadgeEvent(event);
-
-          const existingIndex = badges.findIndex((b) => b.dTag === badge.dTag);
-          if (existingIndex === -1) {
-            badges = [...badges, badge];
-          } else if (!badges[existingIndex].createdAt || badge.createdAt >= badges[existingIndex].createdAt) {
-            badges = badges.map((b, i) => (i === existingIndex ? badge : b));
-          }
-        },
-        error: (error: Error) => {
-          console.error('Error loading badges:', error);
-          loadingBadges = false;
-        },
-        complete: () => {
-          loadingBadges = false;
-        },
-      });
-
-      req.emit(filters);
-
-      setTimeout(() => {
+    badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
+      next: (badgeMap) => {
+        badges = [...badgeMap.values()];
         loadingBadges = false;
-      }, 3000);
-    } catch (error) {
-      console.error('Failed to load badges:', error);
+      },
+      error: (error: Error) => {
+        console.error('Error loading badges:', error);
+        loadingBadges = false;
+      },
+    });
+
+    setTimeout(() => {
       loadingBadges = false;
-    }
+    }, 3000);
   }
 
   function switchToEditMode() {

@@ -4,20 +4,15 @@
   import { t } from '../stores/i18n';
   import { isValidNpub } from '../utils/validation';
   import { npubToHex } from '../utils/npubConverter';
-  import { publishEvent, getUserBadgeDefinitions } from '../services/nostr';
+  import { publishEvent } from '../services/nostr';
+  import {
+    resolveBadgeDefinitionsByPubkey,
+    type BadgeDefinitionWithPubkey,
+  } from '../services/badgeDefinitionResolver';
   import type { NostrEvent } from '../../types/nostr';
   import type { Subscription } from 'rxjs';
 
-  interface BadgeDefinition {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string;
-    thumbnailUrl?: string;
-    dTag: string;
-  }
-
-  let badges: BadgeDefinition[] = $state([]);
+  let badges: BadgeDefinitionWithPubkey[] = $state([]);
   let selectedBadge = $state('');
   let recipientNpub = $state('');
   let submitting = $state(false);
@@ -49,10 +44,9 @@
     }
   });
 
-  async function loadBadges() {
+  function loadBadges() {
     if (!$authStore.pubkey) return;
 
-    // Cleanup previous subscription
     if (badgeSubscription) {
       badgeSubscription.unsubscribe();
     }
@@ -60,57 +54,20 @@
     loading = true;
     badges = [];
 
-    try {
-      const { observable, req, filters } = getUserBadgeDefinitions($authStore.pubkey);
-
-      // Subscribe first, then emit
-      badgeSubscription = observable.subscribe({
-        next: (packet: any) => {
-          const event = packet.event;
-          const dTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1] || '';
-          const name = event.tags.find((t: string[]) => t[0] === 'name')?.[1] || dTag;
-          const description = event.tags.find((t: string[]) => t[0] === 'description')?.[1] || '';
-          const imageTag = event.tags.find((t: string[]) => t[0] === 'image');
-          const imageUrl = imageTag?.[1] || '';
-          const thumbnailTag = event.tags.find((t: string[]) => t[0] === 'thumb');
-          const thumbnailUrl = thumbnailTag?.[1] || '';
-
-          // Check if badge already exists in list
-          if (!badges.some((b) => b.dTag === dTag)) {
-            badges = [
-              ...badges,
-              {
-                id: event.id || '',
-                name,
-                description,
-                imageUrl,
-                thumbnailUrl,
-                dTag,
-              },
-            ];
-          }
-        },
-        error: (error: Error) => {
-          console.error('Error loading badges:', error);
-          loading = false;
-        },
-        complete: () => {
-          console.log('Badge loading complete');
-          loading = false;
-        },
-      });
-
-      // Emit the request after subscribing
-      req.emit(filters);
-
-      // Auto-complete after 3 seconds as fallback
-      setTimeout(() => {
+    badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
+      next: (badgeMap) => {
+        badges = [...badgeMap.values()];
         loading = false;
-      }, 3000);
-    } catch (error) {
-      console.error('Failed to load badges:', error);
+      },
+      error: (error: Error) => {
+        console.error('Error loading badges:', error);
+        loading = false;
+      },
+    });
+
+    setTimeout(() => {
       loading = false;
-    }
+    }, 3000);
   }
 
   async function handleSubmit(e: Event) {
@@ -208,10 +165,10 @@
         <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <h4 class="font-medium text-gray-900 mb-3">Selected Badge Details</h4>
           <div class="flex flex-col md:flex-row gap-4">
-            {#if selectedBadgeDetails.thumbnailUrl || selectedBadgeDetails.imageUrl}
+            {#if selectedBadgeDetails.imageUrl}
               <div class="flex-shrink-0">
-                <img 
-                  src={selectedBadgeDetails.thumbnailUrl || selectedBadgeDetails.imageUrl} 
+                <img
+                  src={selectedBadgeDetails.thumbnails.s || selectedBadgeDetails.thumbnails.xs || selectedBadgeDetails.imageUrl}
                   alt={selectedBadgeDetails.name}
                   class="w-24 h-24 md:w-32 md:h-32 object-cover rounded-md border border-gray-300"
                 />

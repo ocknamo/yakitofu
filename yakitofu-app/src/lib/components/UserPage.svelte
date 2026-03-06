@@ -1,10 +1,10 @@
 <script lang="ts">
-import { getUserBadgeDefinitions, waitForConnection } from '../services/nostr';
+import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
-import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
+import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
 
@@ -47,47 +47,25 @@ $effect(() => {
 
 // Fetch user's badge definitions
 $effect(() => {
-  let cancelled = false;
   badges = [];
   loadingBadges = true;
 
-  const { observable, req, filters } = getUserBadgeDefinitions(pubkey);
-  const seen = new Map<string, BadgeDefinition>();
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  const subscription = observable.subscribe({
-    next: (packet) => {
-      if (cancelled) return;
-      const event = packet.event;
-      if (event.pubkey !== pubkey) return;
-      const parsed = parseBadgeEvent(event);
-      seen.set(parsed.dTag, parsed);
-    },
-    complete: () => {
-      if (cancelled) return;
-      clearTimeout(timeoutId);
-      badges = [...seen.values()];
+  const subscription = resolveBadgeDefinitionsByPubkey(pubkey).subscribe({
+    next: (badgeMap) => {
+      badges = [...badgeMap.values()];
       loadingBadges = false;
+      clearTimeout(timeoutId);
     },
     error: () => {
-      if (cancelled) return;
-      clearTimeout(timeoutId);
-      badges = [...seen.values()];
       loadingBadges = false;
     },
   });
 
-  waitForConnection().then(() => {
-    if (cancelled) return;
-    timeoutId = setTimeout(() => {
-      badges = [...seen.values()];
-      loadingBadges = false;
-    }, 5000);
-    req.emit(filters);
-  });
+  const timeoutId = setTimeout(() => {
+    loadingBadges = false;
+  }, 5000);
 
   return () => {
-    cancelled = true;
     subscription.unsubscribe();
     clearTimeout(timeoutId);
   };

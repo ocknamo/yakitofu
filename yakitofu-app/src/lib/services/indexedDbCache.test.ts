@@ -174,6 +174,56 @@ describe('getCachedBadgeDefinition / setCachedBadgeDefinition', () => {
   });
 });
 
+describe('getCachedBadgeDefinitionsByPubkey', () => {
+  let mod: CacheModule;
+
+  beforeEach(async () => {
+    resetIndexedDB();
+    mod = await freshModule();
+  });
+
+  it('指定 pubkey のバッジのみを返す', async () => {
+    await mod.setCachedBadgeDefinition('pk1', {
+      id: 'id1',
+      name: 'Badge1',
+      description: '',
+      imageUrl: '',
+      thumbnails: {},
+      dTag: 'badge1',
+      createdAt: 1000,
+    });
+    await mod.setCachedBadgeDefinition('pk1', {
+      id: 'id2',
+      name: 'Badge2',
+      description: '',
+      imageUrl: '',
+      thumbnails: {},
+      dTag: 'badge2',
+      createdAt: 1000,
+    });
+    await mod.setCachedBadgeDefinition('pk2', {
+      id: 'id3',
+      name: 'Badge3',
+      description: '',
+      imageUrl: '',
+      thumbnails: {},
+      dTag: 'badge3',
+      createdAt: 1000,
+    });
+
+    const result = await mod.getCachedBadgeDefinitionsByPubkey('pk1');
+    expect(result.size).toBe(2);
+    expect(result.get('badge1')?.name).toBe('Badge1');
+    expect(result.get('badge2')?.name).toBe('Badge2');
+    expect(result.has('badge3')).toBe(false);
+  });
+
+  it('該当なしの場合は空 Map を返す', async () => {
+    const result = await mod.getCachedBadgeDefinitionsByPubkey('nonexistent');
+    expect(result.size).toBe(0);
+  });
+});
+
 describe('setCachedBadgeDefinition エビクション', () => {
   let mod: CacheModule;
 

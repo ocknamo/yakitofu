@@ -1,11 +1,11 @@
 <script lang="ts">
-import { getBadgeAwardees, getBadgeDefinition, waitForConnection } from '../services/nostr';
-import { getCachedBadgeDefinition, setCachedBadgeDefinition } from '../services/indexedDbCache';
+import { getBadgeAwardees, waitForConnection } from '../services/nostr';
+import { resolveBadgeDefinition } from '../services/badgeDefinitionResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { languageStore, t } from '../stores/i18n';
-import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
+import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
 import type { Subscription } from 'rxjs';
@@ -47,50 +47,20 @@ function fetchProfiles(pubkeys: string[]) {
 
 // Fetch badge definition
 $effect(() => {
-  let cancelled = false;
-  // badge をリセットしない — 遷移中も古いコンテンツを表示してちらつきを防ぐ
-  // 未発見確定時（タイムアウト・エラー）にのみ null にする
   loadingBadge = true;
   badgeError = '';
-
-  const { observable, req, filters } = getBadgeDefinition(pubkey, dTag);
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  // このeffect実行でバッジが見つかったかを追跡
   let foundBadge = false;
 
-  // IndexedDB キャッシュを先に確認して即表示
-  getCachedBadgeDefinition(pubkey, dTag)
-    .then((cached) => {
-      if (cancelled) return;
-      if (cached) {
-        badge = cached;
+  const subscription = resolveBadgeDefinition(pubkey, dTag).subscribe({
+    next: (resolved) => {
+      if (resolved) {
+        badge = resolved;
         loadingBadge = false;
         foundBadge = true;
+        clearTimeout(timeoutId);
       }
-    })
-    .catch(console.error);
-
-  const subscription = observable.subscribe({
-    next: (packet) => {
-      if (cancelled) return;
-      const event = packet.event;
-      // Client-side validation: ensure pubkey and dTag match
-      if (event.pubkey !== pubkey) return;
-      const eventDTag = event.tags.find((tag: string[]) => tag[0] === 'd')?.[1];
-      if (eventDTag !== dTag) return;
-
-      const parsed = parseBadgeEvent(event);
-      setCachedBadgeDefinition(pubkey, parsed).catch(console.error);
-      // 古いイベントは無視し、新しいか同一イベントのみ反映
-      if (!badge || !badge.createdAt || parsed.createdAt >= badge.createdAt) {
-        badge = parsed;
-      }
-      loadingBadge = false;
-      foundBadge = true;
-      clearTimeout(timeoutId);
     },
     error: () => {
-      if (cancelled) return;
       clearTimeout(timeoutId);
       loadingBadge = false;
       if (!foundBadge) {
@@ -98,32 +68,17 @@ $effect(() => {
         badgeError = $t('badgeNotFound');
       }
     },
-    complete: () => {
-      if (cancelled) return;
-      // バッジが見つかった場合のみタイムアウトをキャンセルして終了
-      // 見つかっていない場合はタイムアウトに判定を委ねる（EOSEが早期に来た可能性）
-      if (foundBadge) {
-        clearTimeout(timeoutId);
-        loadingBadge = false;
-      }
-    },
   });
 
-  // リレー接続を待ってからリクエストを送信する
-  waitForConnection().then(() => {
-    if (cancelled) return;
-    timeoutId = setTimeout(() => {
-      loadingBadge = false;
-      if (!foundBadge) {
-        badge = null;
-        badgeError = $t('badgeNotFound');
-      }
-    }, 5000);
-    req.emit(filters);
-  });
+  const timeoutId = setTimeout(() => {
+    loadingBadge = false;
+    if (!foundBadge) {
+      badge = null;
+      badgeError = $t('badgeNotFound');
+    }
+  }, 8000);
 
   return () => {
-    cancelled = true;
     subscription.unsubscribe();
     clearTimeout(timeoutId);
   };
