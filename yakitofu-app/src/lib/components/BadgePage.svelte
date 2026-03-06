@@ -1,6 +1,6 @@
 <script lang="ts">
-import { getBadgeAwardees, waitForConnection } from '../services/nostr';
 import { resolveBadgeDefinition } from '../services/badgeDefinitionResolver';
+import { resolveBadgeAwardees } from '../services/badgeAwardeeResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
@@ -86,69 +86,29 @@ $effect(() => {
 
 // Fetch badge awardees
 $effect(() => {
-  let cancelled = false;
-  awardees = [];
   loadingAwardees = true;
+  awardees = [];
 
-  const { observable, req, filters } = getBadgeAwardees(pubkey, dTag);
-  const seen = new Map<string, number>();
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  function commitAwardees() {
-    loadingAwardees = false;
-    const entries: AwardeeEntry[] = [...seen.entries()].map(([pk, createdAt]) => ({
-      pubkey: pk,
-      createdAt,
-      profile: profileCache.get(pk) ?? null,
-    }));
-    awardees = entries;
-    if (entries.length > 0) fetchProfiles(entries.map((e) => e.pubkey));
-  }
-
-  const subscription = observable.subscribe({
-    next: (packet) => {
-      const event = packet.event;
-      const awardee = event.pubkey;
-      if (!awardee) return;
-
-      // Extract all p-tag pubkeys from the award event
-      const pTags = event.tags.filter((tag: string[]) => tag[0] === 'p').map((tag: string[]) => tag[1]);
-
-      for (const pk of pTags) {
-        const existing = seen.get(pk);
-        if (!existing || event.created_at > existing) {
-          seen.set(pk, event.created_at);
-        }
-      }
+  const subscription = resolveBadgeAwardees(pubkey, dTag).subscribe({
+    next: (awardeeMap) => {
+      loadingAwardees = false;
+      const entries: AwardeeEntry[] = [...awardeeMap.entries()].map(([pk, createdAt]) => ({
+        pubkey: pk,
+        createdAt,
+        profile: profileCache.get(pk) ?? null,
+      }));
+      awardees = entries;
+      if (entries.length > 0) fetchProfiles(entries.map((e) => e.pubkey));
     },
-    error: () => {
-      clearTimeout(timeoutId);
+    error: (err) => {
+      console.error('Error fetching awardees:', err);
       loadingAwardees = false;
     },
-    complete: () => {
-      // 受賞者が見つかった場合のみ早期コミット
-      // 見つかっていない場合はタイムアウトに委ねる（EOSEが早期に来た可能性）
-      if (seen.size > 0) {
-        clearTimeout(timeoutId);
-        commitAwardees();
-      }
-    },
-  });
-
-  // リレー接続を待ってからリクエストを送信する
-  waitForConnection().then(() => {
-    if (cancelled) return;
-    timeoutId = setTimeout(() => {
-      commitAwardees();
-    }, 5000);
-    req.emit(filters);
   });
 
   return () => {
-    cancelled = true;
     subscription.unsubscribe();
     if (profileSubscription) profileSubscription.unsubscribe();
-    clearTimeout(timeoutId);
   };
 });
 
