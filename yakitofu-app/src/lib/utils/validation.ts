@@ -2,7 +2,7 @@
 
 export function isValidBadgeId(id: string): boolean {
   // Badge ID should be alphanumeric with hyphens
-  return /^[a-z0-9-]+$/.test(id);
+  return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
 export function isValidUrl(url: string): boolean {

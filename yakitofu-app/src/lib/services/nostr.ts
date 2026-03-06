@@ -140,6 +140,20 @@ export function getUserProfiles(pubkeys: string[]) {
   return { observable, req, filters };
 }
 
+// Search badge definitions by dTag across all authors
+export function searchBadgesByDTag(dTag: string) {
+  const filters = [
+    {
+      kinds: [30009],
+      '#d': [dTag],
+    },
+  ];
+
+  const { observable, req } = fetchPastEvents(filters);
+
+  return { observable, req, filters };
+}
+
 // Wait for at least one relay to be connected (or timeout)
 export function waitForConnection(timeoutMs = 3000): Promise<void> {
   return new Promise((resolve) => {

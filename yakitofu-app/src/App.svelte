@@ -7,6 +7,8 @@ import BadgePage from './lib/components/BadgePage.svelte';
 import LanguageSwitch from './lib/components/LanguageSwitch.svelte';
 import LoginButton from './lib/components/LoginButton.svelte';
 import RelaySettings from './lib/components/RelaySettings.svelte';
+import SearchForm from './lib/components/SearchForm.svelte';
+import SearchResultPage from './lib/components/SearchResultPage.svelte';
 import UserPage from './lib/components/UserPage.svelte';
 import { initializeRelays } from './lib/services/nostr';
 import { authStore } from './lib/stores/auth';
@@ -23,7 +25,7 @@ let activeTab: Tab = $state('create');
 // dTag = [a-z0-9-]+
 function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
   const match = hash.match(
-    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-z0-9-]+)$/
+    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-zA-Z0-9_-]+)$/
   );
   if (!match) return null;
   try {
@@ -32,6 +34,13 @@ function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null 
   } catch {
     return null;
   }
+}
+
+// Hash routing: #/search/<dTag>
+function parseSearchRoute(hash: string): { dTag: string } | null {
+  const match = hash.match(/^#\/search\/([a-zA-Z0-9_-]+)$/);
+  if (!match) return null;
+  return { dTag: match[1] };
 }
 
 // Hash routing: #/user/<npub>
@@ -49,6 +58,7 @@ function parseUserRoute(hash: string): { pubkey: string } | null {
 let currentHash = $state(window.location.hash);
 let badgeRoute = $derived(parseBadgeRoute(currentHash));
 let userRoute = $derived(parseUserRoute(currentHash));
+let searchRoute = $derived(parseSearchRoute(currentHash));
 
 $effect(() => {
   const onHashChange = () => {
@@ -77,20 +87,28 @@ onMount(() => {
 	<header class="bg-liner-to-br from-orange-500 to-orange-600 text-white">
 		<!-- モバイル表示では縦に並べる -->
 		<div class="max-w-7xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between gap-4">
-			<div class="flex-1">
+			<div class="flex-1 min-w-0">
 				<h1 class="text-2xl md:text-4xl font-bold text-gray-900">📛 {$t('appTitle')}</h1>
 				<p class="mt-2 text-sm md:text-base text-gray-900">{$t('appDescription')}</p>
 			</div>
 
-			<div class="max-w-xs items-center gap-2 hidden sm:flex">
-				<LoginButton />
+			<div class="flex items-center gap-2">
+				<div class="hidden sm:block">
+					<LoginButton />
+				</div>
+				<LanguageSwitch />
 			</div>
-			<LanguageSwitch />
 		</div>
 	</header>
 
-	{#if !badgeRoute && !userRoute}
-	<div class="flex place-content-center sm:hidden p-2border-b border-gray-200">
+	<div class="px-4 py-2 bg-orange-500">
+		<div class="max-w-xl mx-auto">
+			<SearchForm />
+		</div>
+	</div>
+
+	{#if !badgeRoute && !userRoute && !searchRoute}
+	<div class="flex place-content-center sm:hidden p-2 border-b border-gray-200">
 		<LoginButton />
 	</div>
 	{/if}
@@ -107,47 +125,55 @@ onMount(() => {
 				<UserPage pubkey={userRoute.pubkey} />
 			</div>
 		</div>
-	{:else}
+	{:else if searchRoute}
 		<div class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 md:py-8">
-			<div class="mb-6 md:mb-8 border-b-2 border-gray-200">
-				<div class="flex gap-0">
-					<button
-						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'create'
-							? 'border-b-orange-500 text-orange-500 font-semibold'
-							: 'border-transparent hover:text-orange-500'}"
-						onclick={() => activeTab = 'create'}
-					>
-						{$t('createBadge')}
-					</button>
-
-					<button
-						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'award'
-							? 'border-b-orange-500 text-orange-500 font-semibold'
-							: 'border-transparent hover:text-orange-500'}"
-						onclick={() => activeTab = 'award'}
-					>
-						{$t('awardBadge')}
-					</button>
-
-					<button
-						class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'settings'
-							? 'border-b-orange-500 text-orange-500 font-semibold'
-							: 'border-transparent hover:text-orange-500'}"
-						onclick={() => activeTab = 'settings'}
-					>
-						{$t('settings')}
-					</button>
-				</div>
-			</div>
-
 			<div class="p-4 md:p-8">
-				{#if activeTab === 'create'}
-					<BadgeDefinitionForm />
-				{:else if activeTab === 'award'}
-					<BadgeAwardForm />
-				{:else if activeTab === 'settings'}
-					<RelaySettings />
-				{/if}
+				<SearchResultPage dTag={searchRoute.dTag} />
+			</div>
+		</div>
+	{:else}
+		<div class="flex-1 w-full px-4 py-6 md:py-8">
+			<div class="max-w-2xl mx-auto">
+				<div class="mb-6 md:mb-8 border-b-2 border-gray-200">
+					<div class="flex gap-0 justify-center">
+						<button
+							class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'create'
+								? 'border-b-orange-500 text-orange-500 font-semibold'
+								: 'border-transparent hover:text-orange-500'}"
+							onclick={() => activeTab = 'create'}
+						>
+							{$t('createBadge')}
+						</button>
+
+						<button
+							class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'award'
+								? 'border-b-orange-500 text-orange-500 font-semibold'
+								: 'border-transparent hover:text-orange-500'}"
+							onclick={() => activeTab = 'award'}
+						>
+							{$t('awardBadge')}
+						</button>
+
+						<button
+							class="px-4 py-3 md:px-6 md:py-4 text-gray-600 transition-all border-b-3 {activeTab === 'settings'
+								? 'border-b-orange-500 text-orange-500 font-semibold'
+								: 'border-transparent hover:text-orange-500'}"
+							onclick={() => activeTab = 'settings'}
+						>
+							{$t('settings')}
+						</button>
+					</div>
+				</div>
+
+				<div class="p-4 md:p-8">
+					{#if activeTab === 'create'}
+						<BadgeDefinitionForm />
+					{:else if activeTab === 'award'}
+						<BadgeAwardForm />
+					{:else if activeTab === 'settings'}
+						<RelaySettings />
+					{/if}
+				</div>
 			</div>
 		</div>
 	{/if}

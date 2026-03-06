@@ -299,6 +299,32 @@ const translations: Translations = {
     en: 'My Page',
     ja: 'マイページ',
   },
+
+  // Search
+  searchPlaceholder: {
+    en: 'npub or Badge ID',
+    ja: 'npubまたはバッジID',
+  },
+  search: {
+    en: 'Search',
+    ja: '検索',
+  },
+  searchResults: {
+    en: 'Search Results',
+    ja: '検索結果',
+  },
+  noSearchResults: {
+    en: 'No results found.',
+    ja: '検索結果がありません。',
+  },
+  searchingBadges: {
+    en: 'Searching badges...',
+    ja: 'バッジを検索中...',
+  },
+  invalidSearchQuery: {
+    en: 'Please enter a valid npub or Badge ID (lowercase alphanumeric and hyphens).',
+    ja: '有効なnpubまたはバッジID（半角英小文字・数字・ハイフン）を入力してください。',
+  },
 };
 
 function createI18nStore() {

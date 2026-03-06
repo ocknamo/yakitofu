@@ -3,21 +3,19 @@ import { isValidBadgeId, isValidUrl, isValidWebSocketUrl, isValidNpub } from './
 
 describe('validation', () => {
   describe('isValidBadgeId', () => {
-    it('should accept valid badge IDs with lowercase letters, numbers, and hyphens', () => {
+    it('should accept valid badge IDs with letters, numbers, hyphens, and underscores', () => {
       expect(isValidBadgeId('my-badge')).toBe(true);
       expect(isValidBadgeId('badge123')).toBe(true);
       expect(isValidBadgeId('test-badge-2024')).toBe(true);
       expect(isValidBadgeId('a')).toBe(true);
       expect(isValidBadgeId('123')).toBe(true);
-    });
-
-    it('should reject badge IDs with uppercase letters', () => {
-      expect(isValidBadgeId('MyBadge')).toBe(false);
-      expect(isValidBadgeId('TEST')).toBe(false);
+      expect(isValidBadgeId('MyBadge')).toBe(true);
+      expect(isValidBadgeId('TEST')).toBe(true);
+      expect(isValidBadgeId('Neiger-Emblem')).toBe(true);
+      expect(isValidBadgeId('badge_id')).toBe(true);
     });
 
     it('should reject badge IDs with special characters', () => {
-      expect(isValidBadgeId('badge_id')).toBe(false);
       expect(isValidBadgeId('badge.id')).toBe(false);
       expect(isValidBadgeId('badge@id')).toBe(false);
       expect(isValidBadgeId('badge id')).toBe(false);
