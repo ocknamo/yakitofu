@@ -22,6 +22,10 @@ $effect(() => {
   profile = null;
   loadingProfile = true;
 
+  const timeoutId = setTimeout(() => {
+    loadingProfile = false;
+  }, 5000);
+
   const subscription = resolveProfiles([pubkey]).subscribe({
     next: (profiles) => {
       const p = profiles.get(pubkey);
@@ -35,10 +39,6 @@ $effect(() => {
     },
   });
 
-  const timeoutId = setTimeout(() => {
-    loadingProfile = false;
-  }, 5000);
-
   return () => {
     subscription.unsubscribe();
     clearTimeout(timeoutId);
@@ -50,6 +50,10 @@ $effect(() => {
   badges = [];
   loadingBadges = true;
 
+  const timeoutId = setTimeout(() => {
+    loadingBadges = false;
+  }, 5000);
+
   const subscription = resolveBadgeDefinitionsByPubkey(pubkey).subscribe({
     next: (badgeMap) => {
       badges = [...badgeMap.values()];
@@ -60,10 +64,6 @@ $effect(() => {
       loadingBadges = false;
     },
   });
-
-  const timeoutId = setTimeout(() => {
-    loadingBadges = false;
-  }, 5000);
 
   return () => {
     subscription.unsubscribe();
