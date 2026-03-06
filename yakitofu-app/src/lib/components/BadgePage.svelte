@@ -4,6 +4,7 @@ import { resolveBadgeAwardees } from '../services/badgeAwardeeResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
+import ImageModal from './ImageModal.svelte';
 import { languageStore, t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
@@ -27,6 +28,17 @@ let badgeError = $state('');
 let awardees: AwardeeEntry[] = $state([]);
 let loadingAwardees = $state(true);
 let linkCopied = $state(false);
+let showImageModal = $state(false);
+
+function openImageModal() {
+  if (badge?.imageUrl) {
+    showImageModal = true;
+  }
+}
+
+function closeImageModal() {
+  showImageModal = false;
+}
 
 let sortedAwardees = $derived([...awardees].sort((a, b) => b.createdAt - a.createdAt));
 
@@ -169,12 +181,19 @@ function getInitial(entry: AwardeeEntry): string {
       <!-- Badge image -->
       <div class="flex justify-center mb-6">
         {#if badge.imageUrl}
-          <ProgressiveImage
-            src={badge.imageUrl}
-            placeholderSrc={badge.thumbnails.xs || badge.thumbnails.s || badge.thumbnails.m || ''}
-            alt={badge.name}
-            class="w-72 h-72 rounded-lg"
-          />
+          <button
+            type="button"
+            class="cursor-pointer bg-transparent border-0 p-0"
+            onclick={openImageModal}
+            aria-label="View larger image"
+          >
+            <ProgressiveImage
+              src={badge.imageUrl}
+              placeholderSrc={badge.thumbnails.xs || badge.thumbnails.s || badge.thumbnails.m || ''}
+              alt={badge.name}
+              class="w-72 h-72 rounded-lg hover:opacity-90 transition-opacity"
+            />
+          </button>
         {:else}
           <div class="w-72 h-72 flex items-center justify-center text-8xl bg-gray-50 rounded-lg">
             📛
@@ -322,3 +341,7 @@ function getInitial(entry: AwardeeEntry): string {
     <div class="text-center py-12 text-gray-500">{badgeError}</div>
   {/if}
 </div>
+
+{#if showImageModal && badge?.imageUrl}
+  <ImageModal src={badge.imageUrl} alt={badge.name} onClose={closeImageModal} />
+{/if}
