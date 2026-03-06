@@ -117,8 +117,10 @@ describe('getCachedProfiles', () => {
 
     const result = await mod.getCachedProfiles(['a', 'b', 'c']);
     expect(result.size).toBe(2);
-    expect(result.get('a')?.name).toBe('A');
-    expect(result.get('b')?.name).toBe('B');
+    expect(result.get('a')?.profile.name).toBe('A');
+    expect(result.get('a')?.cachedAt).toBeDefined();
+    expect(result.get('b')?.profile.name).toBe('B');
+    expect(result.get('b')?.cachedAt).toBeDefined();
     expect(result.has('c')).toBe(false);
   });
 });

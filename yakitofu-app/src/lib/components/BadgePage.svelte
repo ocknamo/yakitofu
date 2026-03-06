@@ -38,10 +38,21 @@ function fetchProfiles(pubkeys: string[]) {
   if (profileSubscription) profileSubscription.unsubscribe();
 
   profileSubscription = resolveProfiles(pubkeys).subscribe((profiles) => {
+    // Check if any profiles actually changed
+    let changed = false;
     for (const [pk, profile] of profiles) {
-      profileCache.set(pk, profile);
+      const existing = profileCache.get(pk);
+      if (!existing || existing.createdAt !== profile.createdAt) {
+        profileCache.set(pk, profile);
+        changed = true;
+      }
     }
-    awardees = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
+    
+    // Only update awardees if profiles actually changed
+    if (changed) {
+      const updated = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
+      awardees = updated;
+    }
   });
 }
 
@@ -50,6 +61,14 @@ $effect(() => {
   loadingBadge = true;
   badgeError = '';
   let foundBadge = false;
+
+  const timeoutId = setTimeout(() => {
+    loadingBadge = false;
+    if (!foundBadge) {
+      badge = null;
+      badgeError = $t('badgeNotFound');
+    }
+  }, 8000);
 
   const subscription = resolveBadgeDefinition(pubkey, dTag).subscribe({
     next: (resolved) => {
@@ -69,14 +88,6 @@ $effect(() => {
       }
     },
   });
-
-  const timeoutId = setTimeout(() => {
-    loadingBadge = false;
-    if (!foundBadge) {
-      badge = null;
-      badgeError = $t('badgeNotFound');
-    }
-  }, 8000);
 
   return () => {
     subscription.unsubscribe();

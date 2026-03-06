@@ -4,6 +4,9 @@ import { getCachedProfiles, setCachedProfile } from './indexedDbCache';
 import { getUserProfiles, waitForConnection } from './nostr';
 import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
 
+/** Cache TTL: 24 hours in milliseconds */
+const CACHE_TTL = 24 * 60 * 60 * 1000;
+
 /** Module-level in-memory profile cache (newest-wins by createdAt). */
 const profileCache = new Map<string, UserProfile>();
 
@@ -62,12 +65,17 @@ export function resolveProfiles(pubkeys: string[]): Observable<Map<string, UserP
 
     // 2. IndexedDB cache (async) → 3. Relay (async)
     const pipeline = from(
-      getCachedProfiles(uncached).catch(() => new Map<string, UserProfile>()),
+      getCachedProfiles(uncached).catch(() => new Map()),
     ).pipe(
       tap((idbCached) => {
         let changed = false;
-        for (const [, profile] of idbCached) {
-          if (upsert(profile)) changed = true;
+        const now = Date.now();
+        for (const [pubkey, { profile, cachedAt }] of idbCached) {
+          // Only use cache if it's within TTL (24 hours)
+          if (now - cachedAt <= CACHE_TTL) {
+            if (upsert(profile)) changed = true;
+          }
+          // If cache is expired, the pubkey remains in uncached for relay fetch
         }
         if (changed) subject.next(new Map(result));
         uncached = uncached.filter((pk) => !result.has(pk));

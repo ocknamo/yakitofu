@@ -16,6 +16,7 @@ interface CachedBadgeDefinition extends BadgeDefinition {
 }
 
 interface CachedBadgeAwardees {
+  key: string;
   issuerPubkey: string;
   dTag: string;
   awardees: Record<string, number>;
@@ -136,11 +137,13 @@ export async function setCachedProfile(profile: UserProfile): Promise<void> {
   });
 }
 
-export async function getCachedProfiles(pubkeys: string[]): Promise<Map<string, UserProfile>> {
+export async function getCachedProfiles(
+  pubkeys: string[],
+): Promise<Map<string, { profile: UserProfile; cachedAt: number }>> {
   if (pubkeys.length === 0) return new Map();
 
   const db = await openCacheDB();
-  const result = new Map<string, UserProfile>();
+  const result = new Map<string, { profile: UserProfile; cachedAt: number }>();
 
   await Promise.all(
     pubkeys.map(
@@ -151,8 +154,8 @@ export async function getCachedProfiles(pubkeys: string[]): Promise<Map<string, 
           req.onsuccess = () => {
             const cached = req.result as CachedProfile | undefined;
             if (cached) {
-              const { cachedAt: _cachedAt, ...profile } = cached;
-              result.set(pubkey, profile as UserProfile);
+              const { cachedAt, ...profile } = cached;
+              result.set(pubkey, { profile: profile as UserProfile, cachedAt });
             }
             resolve();
           };
@@ -295,6 +298,7 @@ export async function setCachedBadgeAwardees(
   }
 
   const entry: CachedBadgeAwardees = {
+    key,
     issuerPubkey,
     dTag,
     awardees: Object.fromEntries(awardees),
