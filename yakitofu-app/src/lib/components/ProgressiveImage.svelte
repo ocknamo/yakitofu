@@ -20,13 +20,14 @@
 
 <div class="progressive-image {className}">
   {#if placeholderSrc}
-    <img
-      src={placeholderSrc}
-      alt=""
-      aria-hidden="true"
-      class="progressive-image__placeholder"
-      class:progressive-image__placeholder--hidden={loaded}
-    />
+  <img
+    src={placeholderSrc}
+    alt=""
+    aria-hidden="true"
+    class="progressive-image__placeholder"
+    class:progressive-image__placeholder--hidden={loaded}
+    loading="lazy"
+  />
   {:else}
     <div
       class="progressive-image__placeholder progressive-image__placeholder--solid"
@@ -39,6 +40,7 @@
     class="progressive-image__full"
     class:progressive-image__full--loaded={loaded}
     onload={onLoad}
+    loading="lazy"
   />
 </div>
 

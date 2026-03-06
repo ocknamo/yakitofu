@@ -52,7 +52,7 @@
     {:else if error}
       <p class="text-red-600">{error}</p>
     {:else if imageSize}
-      <img src={url} alt="Badge preview" class="max-w-[200px] max-h-[200px] rounded-md mb-2" />
+      <img src={url} alt="Badge preview" class="max-w-[200px] max-h-[200px] rounded-md mb-2" loading="lazy" />
       <div class="text-sm space-y-1">
         <p class="text-gray-600">Size: {formatImageSize(imageSize)}</p>
         {#if recommendedSize && (imageSize.width !== recommendedSize.width || imageSize.height !== recommendedSize.height)}

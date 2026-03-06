@@ -24,6 +24,7 @@
     class="avatar__img"
     class:avatar__img--loaded={loaded}
     onload={onLoad}
+    loading="lazy"
   />
 </div>
 
