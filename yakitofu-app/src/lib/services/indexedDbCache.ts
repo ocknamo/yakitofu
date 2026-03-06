@@ -2,7 +2,7 @@ import type { BadgeDefinition } from '../utils/badgeEventParser';
 import type { UserProfile } from '../utils/userProfileParser';
 
 const DB_NAME = 'yakitofu-cache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const MAX_ENTRIES = 100;
 
 interface CachedProfile extends UserProfile {
