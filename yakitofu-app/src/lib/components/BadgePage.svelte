@@ -246,17 +246,21 @@ function getInitial(entry: AwardeeEntry): string {
             <li class="py-4 flex items-center gap-4">
               <!-- Avatar -->
               {#if entry.profile?.picture}
-                <ProfileAvatar
-                  src={entry.profile.picture}
-                  alt={getDisplayName(entry)}
-                  class="w-10 h-10 shrink-0"
-                />
+                <a href="#/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
+                  <ProfileAvatar
+                    src={entry.profile.picture}
+                    alt={getDisplayName(entry)}
+                    class="w-10 h-10"
+                  />
+                </a>
               {:else}
-                <div
-                  class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold shrink-0"
-                >
-                  {getInitial(entry)}
-                </div>
+                <a href="#/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
+                  <div
+                    class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold"
+                  >
+                    {getInitial(entry)}
+                  </div>
+                </a>
               {/if}
 
               <!-- User info -->
