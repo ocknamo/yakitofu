@@ -88,7 +88,10 @@ onMount(() => {
 		<!-- モバイル表示では縦に並べる -->
 		<div class="max-w-7xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between gap-4">
 			<div class="flex-1 min-w-0">
-				<h1 class="text-2xl md:text-4xl font-bold text-gray-900">📛 {$t('appTitle')}</h1>
+				<button class="pointer-events-auto hover:opacity-90 transition-opacity"
+					onclick={() => (window.location.hash = '')} >
+					<h1 class="text-2xl md:text-4xl font-bold text-gray-900">📛 {$t('appTitle')}</h1>
+				</button>
 				<p class="mt-2 text-sm md:text-base text-gray-900">{$t('appDescription')}</p>
 			</div>
 

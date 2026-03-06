@@ -96,17 +96,6 @@ function shortNpub(npub: string): string {
 </script>
 
 <div class="max-w-2xl mx-auto">
-  <!-- Back button -->
-  <button
-    class="mb-6 flex items-center gap-2 text-orange-500 hover:text-orange-600 transition-colors font-medium"
-    onclick={() => (window.location.hash = '')}
-  >
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-    </svg>
-    {$t('backToApp')}
-  </button>
-
   <h2 class="text-xl font-bold text-gray-900 mb-4">
     {$t('searchResults')}: <span class="font-mono text-orange-600">{dTag}</span>
   </h2>

@@ -269,10 +269,6 @@ const translations: Translations = {
     en: 'Badge not found.',
     ja: 'バッジが見つかりませんでした。',
   },
-  backToApp: {
-    en: 'Back to App',
-    ja: 'アプリに戻る',
-  },
   unknownUser: {
     en: 'Unknown User',
     ja: '不明なユーザー',
