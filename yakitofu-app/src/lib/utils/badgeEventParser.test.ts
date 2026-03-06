@@ -28,6 +28,7 @@ describe('badgeEventParser', () => {
         imageUrl: 'https://example.com/badge.png',
         thumbnails: {},
         dTag: 'test-badge',
+        createdAt: 1234567890,
       });
     });
 
@@ -158,6 +159,7 @@ describe('badgeEventParser', () => {
         imageUrl: '',
         thumbnails: {},
         dTag: 'test-badge',
+        createdAt: 1234567890,
       });
     });
   });

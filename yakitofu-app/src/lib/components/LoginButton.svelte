@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { getCachedProfiles, setCachedProfile } from '../services/indexedDbCache';
-  import { getUserProfiles, waitForConnection } from '../services/nostr';
+  import { resolveProfiles } from '../services/profileResolver';
+  import ProfileAvatar from './ProfileAvatar.svelte';
   import { authStore } from '../stores/auth';
   import { t } from '../stores/i18n';
   import { hexToNpub } from '../utils/npubConverter';
-  import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
+  import type { UserProfile } from '../utils/userProfileParser';
 
   let loading = $state(false);
   let error = $state('');
@@ -34,37 +34,12 @@
     const pubkey = $authStore.pubkey;
     if (!pubkey) return;
 
-    let cancelled = false;
-
-    getCachedProfiles([pubkey])
-      .then((cached) => {
-        if (cancelled) return;
-        const p = cached.get(pubkey);
-        if (p) profile = p;
-      })
-      .catch(console.error);
-
-    const { observable, req, filters } = getUserProfiles([pubkey]);
-
-    const subscription = observable.subscribe({
-      next: (packet) => {
-        if (cancelled) return;
-        const parsed = parseUserProfile(packet.event);
-        if (parsed.pubkey === pubkey) {
-          profile = parsed;
-          setCachedProfile(parsed).catch(console.error);
-        }
-      },
+    const subscription = resolveProfiles([pubkey]).subscribe((profiles) => {
+      const p = profiles.get(pubkey);
+      if (p) profile = p;
     });
 
-    waitForConnection().then(() => {
-      if (!cancelled) req.emit(filters);
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   });
 </script>
 
@@ -77,10 +52,10 @@
     <!-- Avatar link -->
     <a href="#/user/{npubKey}" class="shrink-0">
       {#if profile?.picture}
-        <img
+        <ProfileAvatar
           src={profile.picture}
           alt={profile.displayName || profile.name || ''}
-          class="w-9 h-9 rounded-full object-cover hover:ring-2 hover:ring-orange-300 transition-all"
+          class="w-9 h-9 hover:ring-2 hover:ring-orange-300 transition-all"
         />
       {:else}
         <div

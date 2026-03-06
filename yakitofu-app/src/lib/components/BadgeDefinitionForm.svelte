@@ -60,8 +60,11 @@
           const event = packet.event;
           const badge = parseBadgeEvent(event);
 
-          if (!badges.some((b) => b.dTag === badge.dTag)) {
+          const existingIndex = badges.findIndex((b) => b.dTag === badge.dTag);
+          if (existingIndex === -1) {
             badges = [...badges, badge];
+          } else if (!badges[existingIndex].createdAt || badge.createdAt >= badges[existingIndex].createdAt) {
+            badges = badges.map((b, i) => (i === existingIndex ? badge : b));
           }
         },
         error: (error: Error) => {

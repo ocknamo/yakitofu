@@ -1,11 +1,13 @@
 <script lang="ts">
-import { searchBadgesByDTag, getUserProfiles, waitForConnection } from '../services/nostr';
+import { searchBadgesByDTag, waitForConnection } from '../services/nostr';
+import { resolveProfiles } from '../services/profileResolver';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
 import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
-import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
+import type { UserProfile } from '../utils/userProfileParser';
 import type { NostrEvent } from '../../types/nostr';
+import type { Subscription } from 'rxjs';
 
 let { dTag }: { dTag: string } = $props();
 
@@ -28,6 +30,16 @@ $effect(() => {
   const seen = new Map<string, BadgeResult>();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+  let profileSub: Subscription | null = null;
+
+  function fetchProfiles(pubkeys: string[]) {
+    const unique = [...new Set(pubkeys)];
+    if (unique.length === 0) return;
+    profileSub = resolveProfiles(unique).subscribe((resolved) => {
+      profiles = resolved;
+    });
+  }
+
   const subscription = observable.subscribe({
     next: (packet) => {
       if (cancelled) return;
@@ -36,7 +48,10 @@ $effect(() => {
       if (!pubkey) return;
       const parsed = parseBadgeEvent(event);
       const key = `${pubkey}:${parsed.dTag}`;
-      seen.set(key, { ...parsed, pubkey });
+      const existing = seen.get(key);
+      if (!existing || !existing.createdAt || parsed.createdAt >= existing.createdAt) {
+        seen.set(key, { ...parsed, pubkey });
+      }
     },
     complete: () => {
       if (cancelled) return;
@@ -63,27 +78,10 @@ $effect(() => {
     req.emit(filters);
   });
 
-  function fetchProfiles(pubkeys: string[]) {
-    if (pubkeys.length === 0) return;
-    const unique = [...new Set(pubkeys)];
-    const { observable: profObs, req: profReq, filters: profFilters } = getUserProfiles(unique);
-
-    profObs.subscribe({
-      next: (packet) => {
-        if (cancelled) return;
-        const parsed = parseUserProfile(packet.event as NostrEvent);
-        profiles = new Map(profiles).set(parsed.pubkey, parsed);
-      },
-    });
-
-    waitForConnection().then(() => {
-      if (!cancelled) profReq.emit(profFilters);
-    });
-  }
-
   return () => {
     cancelled = true;
     subscription.unsubscribe();
+    profileSub?.unsubscribe();
     clearTimeout(timeoutId);
   };
 });

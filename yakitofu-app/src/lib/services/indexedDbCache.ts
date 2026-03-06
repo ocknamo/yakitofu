@@ -97,11 +97,26 @@ export async function setCachedProfile(profile: UserProfile): Promise<void> {
   const db = await openCacheDB();
 
   const tx = db.transaction('profiles', 'readwrite');
-  await evictOldestIfNeeded(tx, 'profiles');
+  const store = tx.objectStore('profiles');
+
+  // 既存キャッシュのタイムスタンプを確認し、古いイベントでは上書きしない
+  const existing = await new Promise<CachedProfile | undefined>((resolve, reject) => {
+    const req = store.get(profile.pubkey);
+    req.onsuccess = () => resolve(req.result as CachedProfile | undefined);
+    req.onerror = () => reject(req.error);
+  });
+
+  if (existing && existing.createdAt && existing.createdAt >= profile.createdAt) {
+    return;
+  }
+
+  if (!existing) {
+    await evictOldestIfNeeded(tx, 'profiles');
+  }
 
   const entry: CachedProfile = { ...profile, cachedAt: Date.now() };
   await new Promise<void>((resolve, reject) => {
-    const req = tx.objectStore('profiles').put(entry);
+    const req = store.put(entry);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
@@ -166,13 +181,18 @@ export async function setCachedBadgeDefinition(
   const key = `${pubkey}:${badge.dTag}`;
 
   const tx = db.transaction('badgeDefinitions', 'readwrite');
+  const store = tx.objectStore('badgeDefinitions');
 
-  // 同一 key の上書きは件数増加なし → 既存エントリをチェック
-  const existing = await new Promise<boolean>((resolve, reject) => {
-    const req = tx.objectStore('badgeDefinitions').count(key);
-    req.onsuccess = () => resolve(req.result > 0);
+  // 既存キャッシュのタイムスタンプを確認し、古いイベントでは上書きしない
+  const existing = await new Promise<CachedBadgeDefinition | undefined>((resolve, reject) => {
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result as CachedBadgeDefinition | undefined);
     req.onerror = () => reject(req.error);
   });
+
+  if (existing && existing.createdAt && existing.createdAt >= badge.createdAt) {
+    return;
+  }
 
   if (!existing) {
     await evictOldestIfNeeded(tx, 'badgeDefinitions');
@@ -180,7 +200,7 @@ export async function setCachedBadgeDefinition(
 
   const entry: CachedBadgeDefinition = { ...badge, key, pubkey, cachedAt: Date.now() };
   await new Promise<void>((resolve, reject) => {
-    const req = tx.objectStore('badgeDefinitions').put(entry);
+    const req = store.put(entry);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });

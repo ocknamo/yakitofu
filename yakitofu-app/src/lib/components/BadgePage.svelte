@@ -1,16 +1,14 @@
 <script lang="ts">
-import { getBadgeAwardees, getBadgeDefinition, getUserProfiles, waitForConnection } from '../services/nostr';
-import {
-  getCachedBadgeDefinition,
-  getCachedProfiles,
-  setCachedBadgeDefinition,
-  setCachedProfile,
-} from '../services/indexedDbCache';
+import { getBadgeAwardees, getBadgeDefinition, waitForConnection } from '../services/nostr';
+import { getCachedBadgeDefinition, setCachedBadgeDefinition } from '../services/indexedDbCache';
+import { resolveProfiles } from '../services/profileResolver';
+import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { languageStore, t } from '../stores/i18n';
 import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
-import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
+import type { UserProfile } from '../utils/userProfileParser';
+import type { Subscription } from 'rxjs';
 
 let { pubkey, dTag }: { pubkey: string; dTag: string } = $props();
 
@@ -20,7 +18,7 @@ interface AwardeeEntry {
   profile: UserProfile | null;
 }
 
-// Module-scoped profile cache to avoid re-fetching within a session
+let profileSubscription: Subscription | null = null;
 const profileCache = new Map<string, UserProfile>();
 
 let badge: BadgeDefinition | null = $state(null);
@@ -36,54 +34,15 @@ let shareUrl = $derived(
   `${window.location.origin}${window.location.pathname}#/badge/${hexToNpub(pubkey)}:${dTag}`,
 );
 
-async function fetchProfiles(pubkeys: string[]) {
-  const uncachedPubkeys = pubkeys.filter((pk) => !profileCache.has(pk));
+function fetchProfiles(pubkeys: string[]) {
+  if (profileSubscription) profileSubscription.unsubscribe();
 
-  if (uncachedPubkeys.length === 0) {
+  profileSubscription = resolveProfiles(pubkeys).subscribe((profiles) => {
+    for (const [pk, profile] of profiles) {
+      profileCache.set(pk, profile);
+    }
     awardees = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
-    return;
-  }
-
-  // IndexedDB キャッシュから取得してインメモリに昇格
-  const idbCached = await getCachedProfiles(uncachedPubkeys).catch(() => new Map<string, UserProfile>());
-  for (const [pk, profile] of idbCached) {
-    profileCache.set(pk, profile);
-  }
-  awardees = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
-
-  const stillUncached = uncachedPubkeys.filter((pk) => !profileCache.has(pk));
-  if (stillUncached.length === 0) return;
-
-  const { observable, req, filters } = getUserProfiles(stillUncached);
-
-  const timeoutId = setTimeout(() => {
-    req.emit(filters);
-  }, 0);
-
-  await new Promise<void>((resolve) => {
-    const timeoutResolve = setTimeout(resolve, 3000);
-
-    observable.subscribe({
-      next: (packet) => {
-        const profile = parseUserProfile(packet.event);
-        profileCache.set(profile.pubkey, profile);
-        setCachedProfile(profile).catch(console.error);
-      },
-      error: () => {
-        clearTimeout(timeoutResolve);
-        resolve();
-      },
-      complete: () => {
-        clearTimeout(timeoutResolve);
-        resolve();
-      },
-    });
-
-    req.emit(filters);
-    clearTimeout(timeoutId);
   });
-
-  awardees = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
 }
 
 // Fetch badge definition
@@ -122,8 +81,8 @@ $effect(() => {
 
       const parsed = parseBadgeEvent(event);
       setCachedBadgeDefinition(pubkey, parsed).catch(console.error);
-      // 同一イベントがリレーから返ってきた場合は再レンダリングをスキップ（ちらつき防止）
-      if (!badge || badge.id !== parsed.id) {
+      // 古いイベントは無視し、新しいか同一イベントのみ反映
+      if (!badge || !badge.createdAt || parsed.createdAt >= badge.createdAt) {
         badge = parsed;
       }
       loadingBadge = false;
@@ -233,6 +192,7 @@ $effect(() => {
   return () => {
     cancelled = true;
     subscription.unsubscribe();
+    if (profileSubscription) profileSubscription.unsubscribe();
     clearTimeout(timeoutId);
   };
 });
@@ -371,10 +331,10 @@ function getInitial(entry: AwardeeEntry): string {
             <li class="py-4 flex items-center gap-4">
               <!-- Avatar -->
               {#if entry.profile?.picture}
-                <img
+                <ProfileAvatar
                   src={entry.profile.picture}
                   alt={getDisplayName(entry)}
-                  class="w-10 h-10 rounded-full object-cover shrink-0"
+                  class="w-10 h-10 shrink-0"
                 />
               {:else}
                 <div

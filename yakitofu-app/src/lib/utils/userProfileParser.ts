@@ -5,6 +5,7 @@ export interface UserProfile {
   name: string;
   displayName: string;
   picture: string;
+  createdAt: number;
 }
 
 /**
@@ -30,5 +31,6 @@ export function parseUserProfile(event: NostrEvent): UserProfile {
     name,
     displayName,
     picture,
+    createdAt: event.created_at,
   };
 }

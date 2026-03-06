@@ -13,6 +13,7 @@ export interface BadgeDefinition {
     xs?: string;
   };
   dTag: string;
+  createdAt: number;
 }
 
 /**
@@ -66,5 +67,6 @@ export function parseBadgeEvent(event: NostrEvent): BadgeDefinition {
     imageUrl,
     thumbnails,
     dTag,
+    createdAt: event.created_at,
   };
 }

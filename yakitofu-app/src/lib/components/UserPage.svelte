@@ -1,11 +1,12 @@
 <script lang="ts">
-import { getUserBadgeDefinitions, getUserProfiles, waitForConnection } from '../services/nostr';
-import { getCachedProfiles, setCachedProfile } from '../services/indexedDbCache';
+import { getUserBadgeDefinitions, waitForConnection } from '../services/nostr';
+import { resolveProfiles } from '../services/profileResolver';
+import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
 import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
-import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
+import type { UserProfile } from '../utils/userProfileParser';
 
 let { pubkey }: { pubkey: string } = $props();
 
@@ -18,57 +19,27 @@ let npub = $derived(hexToNpub(pubkey));
 
 // Fetch user profile
 $effect(() => {
-  let cancelled = false;
   profile = null;
   loadingProfile = true;
 
-  // Try IndexedDB cache first
-  getCachedProfiles([pubkey])
-    .then((cached) => {
-      if (cancelled) return;
-      const cachedProfile = cached.get(pubkey);
-      if (cachedProfile) {
-        profile = cachedProfile;
+  const subscription = resolveProfiles([pubkey]).subscribe({
+    next: (profiles) => {
+      const p = profiles.get(pubkey);
+      if (p) {
+        profile = p;
         loadingProfile = false;
       }
-    })
-    .catch(console.error);
-
-  const { observable, req, filters } = getUserProfiles([pubkey]);
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  const subscription = observable.subscribe({
-    next: (packet) => {
-      if (cancelled) return;
-      const parsed = parseUserProfile(packet.event);
-      if (parsed.pubkey === pubkey) {
-        profile = parsed;
-        loadingProfile = false;
-        setCachedProfile(parsed).catch(console.error);
-      }
-    },
-    complete: () => {
-      if (cancelled) return;
-      clearTimeout(timeoutId);
-      loadingProfile = false;
     },
     error: () => {
-      if (cancelled) return;
-      clearTimeout(timeoutId);
       loadingProfile = false;
     },
   });
 
-  waitForConnection().then(() => {
-    if (cancelled) return;
-    timeoutId = setTimeout(() => {
-      loadingProfile = false;
-    }, 5000);
-    req.emit(filters);
-  });
+  const timeoutId = setTimeout(() => {
+    loadingProfile = false;
+  }, 5000);
 
   return () => {
-    cancelled = true;
     subscription.unsubscribe();
     clearTimeout(timeoutId);
   };
@@ -149,10 +120,10 @@ function shortNpub(n: string): string {
       </div>
     {:else}
       {#if profile?.picture}
-        <img
+        <ProfileAvatar
           src={profile.picture}
           alt={profile.displayName || profile.name || ''}
-          class="w-20 h-20 rounded-full object-cover mx-auto mb-3"
+          class="w-20 h-20 mx-auto mb-3"
         />
       {:else}
         <div

@@ -35,9 +35,50 @@ describe('getCachedProfile / setCachedProfile', () => {
       name: 'Alice',
       displayName: 'Alice A',
       picture: 'https://example.com/alice.png',
+      createdAt: 1000,
     };
     await mod.setCachedProfile(profile);
     expect(await mod.getCachedProfile('pk1')).toEqual(profile);
+  });
+
+  it('古いイベントではキャッシュを上書きしない', async () => {
+    const newer: UserProfile = {
+      pubkey: 'pk1',
+      name: 'Alice New',
+      displayName: '',
+      picture: '',
+      createdAt: 2000,
+    };
+    const older: UserProfile = {
+      pubkey: 'pk1',
+      name: 'Alice Old',
+      displayName: '',
+      picture: '',
+      createdAt: 1000,
+    };
+    await mod.setCachedProfile(newer);
+    await mod.setCachedProfile(older);
+    expect((await mod.getCachedProfile('pk1'))?.name).toBe('Alice New');
+  });
+
+  it('新しいイベントではキャッシュを上書きする', async () => {
+    const older: UserProfile = {
+      pubkey: 'pk1',
+      name: 'Alice Old',
+      displayName: '',
+      picture: '',
+      createdAt: 1000,
+    };
+    const newer: UserProfile = {
+      pubkey: 'pk1',
+      name: 'Alice New',
+      displayName: '',
+      picture: '',
+      createdAt: 2000,
+    };
+    await mod.setCachedProfile(older);
+    await mod.setCachedProfile(newer);
+    expect((await mod.getCachedProfile('pk1'))?.name).toBe('Alice New');
   });
 });
 
@@ -51,11 +92,11 @@ describe('setCachedProfile エビクション', () => {
 
   it('101件目で最古エントリが削除される', async () => {
     for (let i = 0; i < 100; i++) {
-      await mod.setCachedProfile({ pubkey: `pk${i}`, name: `User${i}`, displayName: '', picture: '' });
+      await mod.setCachedProfile({ pubkey: `pk${i}`, name: `User${i}`, displayName: '', picture: '', createdAt: i });
     }
     expect(await mod.getCachedProfile('pk0')).not.toBeNull();
 
-    await mod.setCachedProfile({ pubkey: 'pk100', name: 'User100', displayName: '', picture: '' });
+    await mod.setCachedProfile({ pubkey: 'pk100', name: 'User100', displayName: '', picture: '', createdAt: 100 });
 
     expect(await mod.getCachedProfile('pk0')).toBeNull();
     expect(await mod.getCachedProfile('pk100')).not.toBeNull();
@@ -71,8 +112,8 @@ describe('getCachedProfiles', () => {
   });
 
   it('複数 pubkey を一括取得し、存在しないものは Map に含まれない', async () => {
-    await mod.setCachedProfile({ pubkey: 'a', name: 'A', displayName: '', picture: '' });
-    await mod.setCachedProfile({ pubkey: 'b', name: 'B', displayName: '', picture: '' });
+    await mod.setCachedProfile({ pubkey: 'a', name: 'A', displayName: '', picture: '', createdAt: 1000 });
+    await mod.setCachedProfile({ pubkey: 'b', name: 'B', displayName: '', picture: '', createdAt: 1000 });
 
     const result = await mod.getCachedProfiles(['a', 'b', 'c']);
     expect(result.size).toBe(2);
@@ -102,9 +143,34 @@ describe('getCachedBadgeDefinition / setCachedBadgeDefinition', () => {
       imageUrl: 'https://example.com/badge.png',
       thumbnails: {},
       dTag: 'test-badge',
+      createdAt: 1000,
     };
     await mod.setCachedBadgeDefinition('pubkey1', badge);
     expect(await mod.getCachedBadgeDefinition('pubkey1', 'test-badge')).toEqual(badge);
+  });
+
+  it('古いイベントではバッジキャッシュを上書きしない', async () => {
+    const newer: BadgeDefinition = {
+      id: 'id-new',
+      name: 'Badge New',
+      description: '',
+      imageUrl: '',
+      thumbnails: {},
+      dTag: 'test-badge',
+      createdAt: 2000,
+    };
+    const older: BadgeDefinition = {
+      id: 'id-old',
+      name: 'Badge Old',
+      description: '',
+      imageUrl: '',
+      thumbnails: {},
+      dTag: 'test-badge',
+      createdAt: 1000,
+    };
+    await mod.setCachedBadgeDefinition('pubkey1', newer);
+    await mod.setCachedBadgeDefinition('pubkey1', older);
+    expect((await mod.getCachedBadgeDefinition('pubkey1', 'test-badge'))?.name).toBe('Badge New');
   });
 });
 
@@ -125,6 +191,7 @@ describe('setCachedBadgeDefinition エビクション', () => {
         imageUrl: '',
         thumbnails: {},
         dTag: `badge${i}`,
+        createdAt: i,
       });
     }
     expect(await mod.getCachedBadgeDefinition('pk0', 'badge0')).not.toBeNull();
@@ -136,6 +203,7 @@ describe('setCachedBadgeDefinition エビクション', () => {
       imageUrl: '',
       thumbnails: {},
       dTag: 'badge100',
+      createdAt: 100,
     });
 
     expect(await mod.getCachedBadgeDefinition('pk0', 'badge0')).toBeNull();
@@ -151,6 +219,7 @@ describe('setCachedBadgeDefinition エビクション', () => {
         imageUrl: '',
         thumbnails: {},
         dTag: `badge${i}`,
+        createdAt: i,
       });
     }
 
@@ -162,6 +231,7 @@ describe('setCachedBadgeDefinition エビクション', () => {
       imageUrl: '',
       thumbnails: {},
       dTag: 'badge0',
+      createdAt: 1000,
     });
 
     // pk0 は上書きされ残っている
