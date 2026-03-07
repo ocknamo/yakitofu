@@ -72,13 +72,14 @@ export function resolveReceivedBadges(
           upsertBadge(badge);
           if (!resolvedKeys.has(key)) {
             resolvedKeys.add(key);
-            checkAndComplete();
+            // マイクロタスクに遅延してループ全体が終わってから判定する
+            queueMicrotask(checkAndComplete);
           }
         },
         complete: () => {
           if (!resolvedKeys.has(key)) {
             resolvedKeys.add(key);
-            checkAndComplete();
+            queueMicrotask(checkAndComplete);
           }
         },
       });
