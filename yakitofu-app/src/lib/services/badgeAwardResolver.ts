@@ -1,5 +1,5 @@
 import { Observable, BehaviorSubject, from, defer } from 'rxjs';
-import { tap, switchMap } from 'rxjs/operators';
+import { tap, switchMap, timeout, distinctUntilChanged } from 'rxjs/operators';
 import type { Subscription } from 'rxjs';
 import {
   getCachedReceivedBadgeAwards,
@@ -8,6 +8,7 @@ import {
 import { getUserReceivedBadgeAwards, getBadgeDefinition, waitForConnection } from './nostr';
 import { parseBadgeEvent } from '../utils/badgeEventParser';
 import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
+import { completeOnTimeout } from 'rx-nostr';
 
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -58,9 +59,8 @@ export function resolveReceivedBadges(
     // 1. In-memory cache
     const memCached = receivedBadgesCache.get(recipientPubkey);
     if (memCached) {
-      subject.next(memCached.badges);
       if (isFresh(memCached)) {
-        subject.complete();
+        subject.next(memCached.badges);
         return subject.asObservable();
       }
     }
@@ -89,12 +89,16 @@ export function resolveReceivedBadges(
           const awardEntries: Array<{ issuerPubkey: string; dTag: string }> = [];
           const defSubs: Subscription[] = [];
 
-          const awardsSub = awardsObs.subscribe({
+          const awardsSub = awardsObs.pipe(
+            distinctUntilChanged((a, b) => a.event.id === b.event.id), // 同一イベントの重複受信を防止
+            completeOnTimeout(3 * 1000), // 3秒でタイムアウトしてEOSEとみなす
+          ).subscribe({
             next: (packet) => {
               for (const tag of packet.event.tags) {
                 if (tag[0] !== 'a') continue;
                 const parts = (tag[1] ?? '').split(':');
                 if (parts.length < 3 || parts[0] !== '30009') continue;
+
                 const issuerPubkey = parts[1];
                 const dTag = parts.slice(2).join(':');
                 const key = `${issuerPubkey}:${dTag}`;
@@ -119,7 +123,9 @@ export function resolveReceivedBadges(
                   getBadgeDefinition(issuerPubkey, dTag);
                 let found = false;
 
-                const defSub = defObs.subscribe({
+                const defSub = defObs.pipe(
+                  completeOnTimeout(5 * 1000) // 5秒でタイムアウトしてEOSEとみなす
+                ).subscribe({
                   next: (packet) => {
                     if (found) return;
                     const event = packet.event;

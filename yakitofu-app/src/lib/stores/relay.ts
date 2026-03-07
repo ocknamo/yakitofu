@@ -5,7 +5,7 @@ export interface RelayState {
   connected: Set<string>;
 }
 
-const DEFAULT_RELAYS = ['wss://yabu.me', 'wss://relay.damus.io', 'wss://r.kojira.io', 'wss://relay.rodbishop.nz', 'wss://nostr.bitcoiner.social', 'wss://nostr.land', 'wss://nostr.mom'];
+const DEFAULT_RELAYS = ['wss://yabu.me', 'wss://relay.damus.io', 'wss://r.kojira.io', 'wss://nostr.bitcoiner.social', 'wss://nostr.land', 'wss://nostr.mom'];
 
 function createRelayStore() {
   const { subscribe, set, update } = writable<RelayState>({
