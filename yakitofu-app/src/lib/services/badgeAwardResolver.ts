@@ -141,7 +141,10 @@ export function resolveReceivedBadges(
                 defSubs.push(defSub);
 
                 waitForConnection().then(() => {
-                  if (!defSub.closed) defReq.emit(defFilters);
+                  if (!defSub.closed) {
+                    defReq.emit(defFilters);
+                    defReq.over(); // EOSE 後に observable が complete できるよう単発化する
+                  }
                 });
               }
 
@@ -160,7 +163,10 @@ export function resolveReceivedBadges(
           });
 
           waitForConnection().then(() => {
-            if (!awardsSub.closed) awardsReq.emit(awardsFilters);
+            if (!awardsSub.closed) {
+              awardsReq.emit(awardsFilters);
+              awardsReq.over(); // EOSE 後に observable が complete できるよう単発化する
+            }
           });
 
           return () => {
