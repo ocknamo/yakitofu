@@ -54,7 +54,9 @@ export function resolveReceivedBadges(
     }
 
     function checkAndComplete(): void {
-      if (pipelineDone && resolvedKeys.size >= seen.size) {
+      const allResolved = seen.size > 0 && resolvedKeys.size >= seen.size;
+      const noAwards = pipelineDone && seen.size === 0;
+      if (allResolved || noAwards) {
         subject.complete();
       }
     }
