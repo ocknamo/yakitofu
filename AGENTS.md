@@ -105,12 +105,19 @@ yakitofu/
         │
         ├── lib/
         │   ├── components/      # UIコンポーネント
-        │   │   ├── BadgeDefinitionForm.svelte  # バッジ作成フォーム
         │   │   ├── BadgeAwardForm.svelte       # バッジ授与フォーム
-        │   │   ├── LoginButton.svelte          # NIP-07ログインボタン
-        │   │   ├── RelaySettings.svelte        # リレー設定UI
+        │   │   ├── BadgeDefinitionForm.svelte  # バッジ作成フォーム
+        │   │   ├── BadgePage.svelte            # バッジ詳細ページ（受賞者一覧含む）
+        │   │   ├── ImageModal.svelte           # 画像拡大モーダル
         │   │   ├── ImagePreview.svelte         # 画像プレビュー
-        │   │   └── LanguageSwitch.svelte       # 言語切替
+        │   │   ├── LanguageSwitch.svelte       # 言語切替
+        │   │   ├── LoginButton.svelte          # NIP-07ログインボタン
+        │   │   ├── ProfileAvatar.svelte        # ユーザーアバター表示
+        │   │   ├── ProgressiveImage.svelte     # プログレッシブ画像読み込み
+        │   │   ├── RelaySettings.svelte        # リレー設定UI
+        │   │   ├── SearchForm.svelte           # バッジ検索フォーム
+        │   │   ├── SearchResultPage.svelte     # 検索結果ページ
+        │   │   └── UserPage.svelte             # ユーザーバッジ一覧ページ
         │   │
         │   ├── stores/          # Svelteストア
         │   │   ├── auth.ts      # 認証状態管理（NIP-07）
@@ -118,12 +125,19 @@ yakitofu/
         │   │   └── i18n.ts      # 多言語対応ストア
         │   │
         │   ├── services/        # ビジネスロジック
-        │   │   └── nostr.ts     # Nostr通信（rx-nostr）
+        │   │   ├── nostr.ts                   # Nostr通信（rx-nostr）
+        │   │   ├── badgeDefinitionResolver.ts  # バッジ定義の3層キャッシュ取得
+        │   │   ├── badgeAwardeeResolver.ts     # バッジ受賞者の3層キャッシュ取得
+        │   │   ├── profileResolver.ts          # ユーザープロフィールの3層キャッシュ取得
+        │   │   └── indexedDbCache.ts           # IndexedDBキャッシュDB管理
         │   │
         │   └── utils/           # ユーティリティ
-        │       ├── imageUtils.ts       # 画像処理
-        │       ├── npubConverter.ts    # npub<->hex変換
-        │       └── validation.ts       # バリデーション
+        │       ├── badgeEventParser.ts  # kind 30009 イベントのパース
+        │       ├── badgeTagBuilder.ts   # kind 30009 タグ配列の構築
+        │       ├── imageUtils.ts        # 画像処理
+        │       ├── npubConverter.ts     # npub<->hex変換
+        │       ├── userProfileParser.ts # kind 0 イベントのパース
+        │       └── validation.ts        # バリデーション
         │
         └── types/               # 型定義
             └── nostr.d.ts       # Nostr型定義（NIP-07 window.nostr）
@@ -229,7 +243,7 @@ npm run lint:fix
 - `window.nostr`が存在しない場合のエラーハンドリングを実装
 
 ### 4. バリデーション
-- バッジID: 英数字とハイフン（`^[a-zA-Z0-9-]+$`）
+- バッジID: 空白文字を含まない任意のUnicode文字（絵文字含む）、または空文字列
 - npub形式の検証: `utils/npubConverter.ts`
 - 画像サイズ: 1024x1024px推奨
 
@@ -261,7 +275,7 @@ npm run lint:fix
 
 ---
 
-**最終更新**: 2026/02/12  
+**最終更新**: 2026/03/07
 **対象バージョン**: yakitofu-app v0.0.0  
 **Svelte**: 5.45.2  
 **Node.js**: 22+
