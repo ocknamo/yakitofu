@@ -107,6 +107,7 @@ export function resolveBadgeDefinition(
 
     const pipelineSub = pipeline.subscribe({
       error: (err) => subject.error(err),
+      complete: () => subject.complete(),
     });
 
     return subject.asObservable().pipe(

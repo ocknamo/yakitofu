@@ -60,6 +60,8 @@ $effect(() => {
   const subscription = resolveReceivedBadges(pubkey).subscribe({
     next: (b) => {
       receivedBadges = b;
+    },
+    complete: () => {
       loadingReceivedBadges = false;
       clearTimeout(timeoutId);
     },
