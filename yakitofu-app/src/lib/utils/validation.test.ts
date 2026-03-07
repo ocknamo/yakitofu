@@ -19,7 +19,7 @@ describe('validation', () => {
       expect(isValidBadgeId('badge_id')).toBe(true);
     });
 
-    it('should accept badge IDs with most special characters', () => {
+    it('should accept badge IDs with special characters', () => {
       expect(isValidBadgeId('badge!id')).toBe(true);
       expect(isValidBadgeId('badge$id')).toBe(true);
       expect(isValidBadgeId('badge&id')).toBe(true);
@@ -36,12 +36,20 @@ describe('validation', () => {
       expect(isValidBadgeId('badge_id')).toBe(true);
     });
 
-    it('should reject badge IDs with URL delimiters', () => {
-      expect(isValidBadgeId('badge/id')).toBe(false); // Slash
-      expect(isValidBadgeId('badge?id')).toBe(false); // Question mark
-      expect(isValidBadgeId('badge:id')).toBe(false); // Colon
-      expect(isValidBadgeId('badge#id')).toBe(false); // Hash
-      expect(isValidBadgeId('badge@id')).toBe(false); // At sign
+    it('should accept badge IDs with URL delimiter characters', () => {
+      expect(isValidBadgeId('badge/id')).toBe(true);
+      expect(isValidBadgeId('badge?id')).toBe(true);
+      expect(isValidBadgeId('badge:id')).toBe(true);
+      expect(isValidBadgeId('badge#id')).toBe(true);
+      expect(isValidBadgeId('badge@id')).toBe(true);
+    });
+
+    it('should accept badge IDs with emoji and Unicode characters', () => {
+      expect(isValidBadgeId('🎉')).toBe(true);
+      expect(isValidBadgeId('🏆-badge')).toBe(true);
+      expect(isValidBadgeId('勇者')).toBe(true);
+      expect(isValidBadgeId('badge-🎖️')).toBe(true);
+      expect(isValidBadgeId('🌟スター🌟')).toBe(true);
     });
 
     it('should reject badge IDs with spaces', () => {

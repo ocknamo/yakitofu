@@ -43,7 +43,7 @@ function closeImageModal() {
 let sortedAwardees = $derived([...awardees].sort((a, b) => b.createdAt - a.createdAt));
 
 let shareUrl = $derived(
-  `${window.location.origin}${window.location.pathname}#/badge/${hexToNpub(pubkey)}:${dTag}`,
+  `${window.location.origin}${window.location.pathname}#/badge/${hexToNpub(pubkey)}:${encodeURIComponent(dTag)}`,
 );
 
 function fetchProfiles(pubkeys: string[]) {

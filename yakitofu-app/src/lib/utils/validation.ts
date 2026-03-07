@@ -1,10 +1,9 @@
 // Validation utilities
 
 export function isValidBadgeId(id: string): boolean {
-  // Badge ID accepts alphanumeric and most special characters
-  // Excludes URL delimiters: / ? : # @ and spaces
+  // Badge ID accepts any non-whitespace Unicode characters including emoji
   // Also allows empty string
-  return id === '' || /^[a-zA-Z0-9\-_.~!$&'()*+,;=%]+$/.test(id);
+  return id === '' || /^\S+$/u.test(id);
 }
 
 export function isValidUrl(url: string): boolean {

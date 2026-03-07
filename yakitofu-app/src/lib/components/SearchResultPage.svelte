@@ -110,7 +110,7 @@ function shortNpub(npub: string): string {
         {@const npub = hexToNpub(badge.pubkey)}
         {@const profile = profiles.get(badge.pubkey)}
         <a
-          href="#/badge/{npub}:{badge.dTag}"
+          href="#/badge/{npub}:{encodeURIComponent(badge.dTag)}"
           class="block rounded-lg border border-gray-200 p-3 hover:border-orange-300 hover:shadow-sm transition-all"
         >
           <div class="aspect-square mb-2 rounded-lg overflow-hidden bg-gray-50">

@@ -22,15 +22,13 @@ let activeTab: Tab = $state('create');
 
 // Hash routing: #/badge/<npub>:<dTag>
 // npub = npub1 + 58 bech32 chars = 63 chars total
-// dTag = alphanumeric and most special characters (excludes URL delimiters), or empty
+// dTag = any non-empty string including emoji and Unicode (percent-encoded in URL)
 function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
-  const match = hash.match(
-    /^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):([a-zA-Z0-9\-_.~!$&'()*+,;=%]*)$/
-  );
+  const match = hash.match(/^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):(.*)$/);
   if (!match) return null;
   try {
     const pubkey = npubToHex(match[1]);
-    return { pubkey, dTag: match[2] };
+    return { pubkey, dTag: decodeURIComponent(match[2]) };
   } catch {
     return null;
   }
@@ -38,9 +36,13 @@ function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null 
 
 // Hash routing: #/search/<dTag>
 function parseSearchRoute(hash: string): { dTag: string } | null {
-  const match = hash.match(/^#\/search\/([a-zA-Z0-9\-_.~!$&'()*+,;=%]*)$/);
+  const match = hash.match(/^#\/search\/(.+)$/);
   if (!match) return null;
-  return { dTag: match[1] };
+  try {
+    return { dTag: decodeURIComponent(match[1]) };
+  } catch {
+    return { dTag: match[1] };
+  }
 }
 
 // Hash routing: #/user/<npub>
