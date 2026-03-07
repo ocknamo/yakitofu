@@ -38,6 +38,8 @@ export function resolveReceivedBadges(
   return defer(() => {
     const subject = new BehaviorSubject<BadgeDefinitionWithPubkey[]>([]);
     const seen = new Set<string>(); // "issuerPubkey:dTag"
+    const resolvedKeys = new Set<string>(); // 解決済みバッジのキー
+    let pipelineDone = false;
     const badgeSubscriptions: Subscription[] = [];
     const badges: BadgeDefinitionWithPubkey[] = [];
 
@@ -51,6 +53,12 @@ export function resolveReceivedBadges(
       subject.next([...badges]);
     }
 
+    function checkAndComplete(): void {
+      if (pipelineDone && resolvedKeys.size >= seen.size) {
+        subject.complete();
+      }
+    }
+
     function resolveAndTrack(issuerPubkey: string, dTag: string): void {
       const key = `${issuerPubkey}:${dTag}`;
       if (seen.has(key)) return;
@@ -60,6 +68,16 @@ export function resolveReceivedBadges(
         next: (badge) => {
           if (!badge) return;
           upsertBadge(badge);
+          if (!resolvedKeys.has(key)) {
+            resolvedKeys.add(key);
+            checkAndComplete();
+          }
+        },
+        complete: () => {
+          if (!resolvedKeys.has(key)) {
+            resolvedKeys.add(key);
+            checkAndComplete();
+          }
         },
       });
       badgeSubscriptions.push(sub);
@@ -138,6 +156,10 @@ export function resolveReceivedBadges(
 
     const pipelineSub = pipeline$.subscribe({
       error: (err) => subject.error(err),
+      complete: () => {
+        pipelineDone = true;
+        checkAndComplete();
+      },
     });
 
     return subject.asObservable().pipe(
