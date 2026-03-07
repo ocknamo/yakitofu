@@ -294,3 +294,63 @@ describe('setCachedBadgeDefinition エビクション', () => {
     expect(await mod.getCachedBadgeDefinition('pk1', 'badge1')).not.toBeNull();
   });
 });
+
+describe('getCachedReceivedBadgeAwards / setCachedReceivedBadgeAwards', () => {
+  let mod: CacheModule;
+
+  beforeEach(async () => {
+    resetIndexedDB();
+    mod = await freshModule();
+  });
+
+  it('存在しない recipientPubkey は null を返す', async () => {
+    expect(await mod.getCachedReceivedBadgeAwards('nonexistent')).toBeNull();
+  });
+
+  it('set 後に get するとバッジ定義リストと cachedAt を返す', async () => {
+    const badges = [
+      {
+        pubkey: 'issuer1',
+        id: 'id1',
+        name: 'Badge1',
+        description: 'desc',
+        imageUrl: 'https://example.com/badge.png',
+        thumbnails: {},
+        dTag: 'badge1',
+        createdAt: 1000,
+      },
+    ];
+    await mod.setCachedReceivedBadgeAwards('recipient1', badges);
+    const result = await mod.getCachedReceivedBadgeAwards('recipient1');
+    expect(result).not.toBeNull();
+    expect(result!.badges).toEqual(badges);
+    expect(result!.cachedAt).toBeGreaterThan(0);
+  });
+
+  it('空のバッジリストを保存・取得できる', async () => {
+    await mod.setCachedReceivedBadgeAwards('recipient1', []);
+    const result = await mod.getCachedReceivedBadgeAwards('recipient1');
+    expect(result).not.toBeNull();
+    expect(result!.badges).toEqual([]);
+  });
+
+  it('上書き保存で最新のバッジリストが取得できる', async () => {
+    await mod.setCachedReceivedBadgeAwards('recipient1', []);
+    const badges = [
+      {
+        pubkey: 'issuer1',
+        id: 'id1',
+        name: 'Badge1',
+        description: '',
+        imageUrl: '',
+        thumbnails: {},
+        dTag: 'badge1',
+        createdAt: 1000,
+      },
+    ];
+    await mod.setCachedReceivedBadgeAwards('recipient1', badges);
+    const result = await mod.getCachedReceivedBadgeAwards('recipient1');
+    expect(result!.badges).toHaveLength(1);
+    expect(result!.badges[0].name).toBe('Badge1');
+  });
+});
