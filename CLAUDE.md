@@ -34,7 +34,7 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 ## アーキテクチャ
 
 ### 技術スタック
-- **Svelte 5** のルーン記法（`$state`, `$derived`, `$effect`）— Svelte 4 のストアベースのリアクティビティ構文は使用しない
+- **Svelte 5** のルーン記法（`$state`, `$derived`, `$effect`）をコンポーネントで使用。`stores/` 配下は `writable`/`derived`（svelte/store）による従来のストア API を使用するハイブリッド方式
 - **TypeScript**（strict モード）
 - **Vite 7** + TailwindCSS 4 + `@tailwindcss/vite` プラグイン
 - **rx-nostr**：RxJS ベースのリアクティブな Nostr リレー通信
@@ -42,7 +42,12 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 
 ### 主なアーキテクチャパターン
 
-**Nostr サービス（`src/lib/services/nostr.ts`）**：モジュールレベルのシングルトンとして `rxNostr` インスタンスを `connectionStrategy: 'aggressive'` で初期化。イベントの送信には `publishEvent()`、過去イベントの取得には backward req 戦略を使った `getUserBadgeDefinitions()`、ライブ購読には `subscribeToEvents()` を使用する。
+**Nostr サービス（`src/lib/services/`）**：
+- `nostr.ts` — モジュールレベルのシングルトンとして `rxNostr` インスタンスを `connectionStrategy: 'aggressive'` で初期化。`publishEvent()` でイベント送信、`subscribeToEvents()` でライブ購読、`fetchPastEvents()` で過去イベント取得（backward req）。さらに `getUserBadgeDefinitions()`、`getBadgeDefinition()`、`getBadgeAwardees()`、`getUserProfiles()`、`searchBadgesByDTag()`、`waitForConnection()`、`cleanup()` も提供する
+- `badgeDefinitionResolver.ts` — メモリ → IndexedDB → リレーの 3 層キャッシュでバッジ定義（kind 30009）を取得する
+- `badgeAwardeeResolver.ts` — 同上の 3 層キャッシュでバッジ受賞者（kind 8）を取得する
+- `profileResolver.ts` — 同上の 3 層キャッシュ（24 時間 TTL）でユーザープロフィール（kind 0）を取得する
+- `indexedDbCache.ts` — 複数のオブジェクトストアを持つ IndexedDB キャッシュ DB を管理する
 
 **ストア（`src/lib/stores/`）：**
 - `auth.ts` — `authStore` が NIP-07 のログイン/ログアウトをラップし、`window.nostr` の存在を確認する
@@ -57,8 +62,9 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 **ユーティリティ（`src/lib/utils/`）：**
 - `badgeTagBuilder.ts` — kind 30009 イベントの `tags` 配列を構築する
 - `badgeEventParser.ts` — kind 30009 イベントを `BadgeDefinition` オブジェクトにパース。サムネイルはピクセル面積でソートされる
+- `userProfileParser.ts` — kind 0 イベントを `UserProfile` オブジェクトにパースする
 - `npubConverter.ts` — npub↔hex 変換のカスタム bech32 実装（外部ライブラリなし）
-- `validation.ts` — バッジ ID・URL・WebSocket URL・npub 形式のバリデーション
+- `validation.ts` — バッジ ID（空白なし任意 Unicode）・URL・WebSocket URL・npub 形式のバリデーション
 - `imageUtils.ts` — 画像サイズの取得とフォーマット
 
 **Nostr 型定義（`src/types/nostr.d.ts`）**：`NostrEvent` と `WindowNostr` インターフェースを定義し、`Window` に `nostr?` プロパティを拡張する。

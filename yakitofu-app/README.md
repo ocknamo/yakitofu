@@ -59,7 +59,7 @@ npm run preview
 
 1. **ログイン**: NIP-07拡張機能でログイン
 2. **バッジ作成**: 
-   - バッジID（英数字とハイフン）
+   - バッジID（空白文字を含まない任意の文字列・絵文字も使用可）
    - バッジ名
    - 説明
    - 画像URL
@@ -69,8 +69,14 @@ npm run preview
 
 ## デフォルトリレー
 
-開発環境では以下のリレーを使用:
+以下のリレーをデフォルトで使用:
 - wss://yabu.me
+- wss://relay.damus.io
+- wss://r.kojira.io
+- wss://relay.rodbishop.nz
+- wss://nostr.bitcoiner.social
+- wss://nostr.land
+- wss://nostr.mom
 
 ## NIP-58について
 
