@@ -40,6 +40,7 @@ export function resolveReceivedBadges(
     const seen = new Set<string>(); // "issuerPubkey:dTag"
     const resolvedKeys = new Set<string>(); // 解決済みバッジのキー
     let pipelineDone = false;
+    let inBatch = false; // バッチ処理中フラグ
     const badgeSubscriptions: Subscription[] = [];
     const badges: BadgeDefinitionWithPubkey[] = [];
 
@@ -72,27 +73,33 @@ export function resolveReceivedBadges(
           upsertBadge(badge);
           if (!resolvedKeys.has(key)) {
             resolvedKeys.add(key);
-            // マイクロタスクに遅延してループ全体が終わってから判定する
-            queueMicrotask(checkAndComplete);
+            if (!inBatch) checkAndComplete();
           }
         },
         complete: () => {
           if (!resolvedKeys.has(key)) {
             resolvedKeys.add(key);
-            queueMicrotask(checkAndComplete);
+            if (!inBatch) checkAndComplete();
           }
         },
       });
       badgeSubscriptions.push(sub);
     }
 
+    function processBatch(awards: AwardEntry[]): void {
+      inBatch = true;
+      for (const { issuerPubkey, dTag } of awards) {
+        resolveAndTrack(issuerPubkey, dTag);
+      }
+      inBatch = false;
+      checkAndComplete();
+    }
+
     // 1. In-memory cache
     const memCached = receivedBadgesCache.get(recipientPubkey);
     const memFresh = memCached !== undefined && isFresh(memCached);
     if (memCached) {
-      for (const { issuerPubkey, dTag } of memCached.awards) {
-        resolveAndTrack(issuerPubkey, dTag);
-      }
+      processBatch(memCached.awards);
     }
 
     // 2. IndexedDB (skip if in-memory is fresh) -> 3. Relay (skip if cache is fresh)
@@ -107,9 +114,7 @@ export function resolveReceivedBadges(
         if (!memCached || idbCached.cachedAt > memCached.cachedAt) {
           receivedBadgesCache.set(recipientPubkey, idbCached);
         }
-        for (const { issuerPubkey, dTag } of idbCached.awards) {
-          resolveAndTrack(issuerPubkey, dTag);
-        }
+        processBatch(idbCached.awards);
       }),
       switchMap((idbCached) => {
         // Skip relay if either in-memory or IDB cache is fresh
@@ -125,6 +130,7 @@ export function resolveReceivedBadges(
         return new Observable<void>((subscriber) => {
           const subscription = observable.subscribe({
             next: (packet) => {
+              const newAwards: AwardEntry[] = [];
               for (const tag of packet.event.tags) {
                 if (tag[0] !== 'a') continue;
                 const parts = (tag[1] ?? '').split(':');
@@ -135,8 +141,9 @@ export function resolveReceivedBadges(
                 if (!relayAwards.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
                   relayAwards.push({ issuerPubkey, dTag });
                 }
-                resolveAndTrack(issuerPubkey, dTag);
+                if (!seen.has(key)) newAwards.push({ issuerPubkey, dTag });
               }
+              if (newAwards.length > 0) processBatch(newAwards);
             },
             error: (err) => subscriber.error(err),
             complete: () => {
