@@ -80,6 +80,7 @@ $effect(() => {
       fetchProfiles(values.map((r) => r.pubkey));
     }, 5000);
     req.emit(filters);
+    req.over(); // EOSE 後に observable が complete できるよう単発化する
   });
 
   return () => {
