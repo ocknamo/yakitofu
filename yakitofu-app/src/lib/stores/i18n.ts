@@ -299,6 +299,14 @@ const translations: Translations = {
     en: 'No badges created yet.',
     ja: 'まだバッジを作成していません。',
   },
+  receivedBadges: {
+    en: 'Received Badges',
+    ja: '保有バッジ',
+  },
+  noReceivedBadges: {
+    en: 'No badges received yet.',
+    ja: 'まだバッジを受け取っていません。',
+  },
   myPage: {
     en: 'My Page',
     ja: 'マイページ',

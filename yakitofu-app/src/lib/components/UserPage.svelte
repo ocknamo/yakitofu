@@ -1,5 +1,6 @@
 <script lang="ts">
-import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
+import { resolveBadgeDefinitionsByPubkey, type BadgeDefinitionWithPubkey } from '../services/badgeDefinitionResolver';
+import { resolveReceivedBadges } from '../services/badgeAwardResolver';
 import { resolveProfiles } from '../services/profileResolver';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
@@ -12,6 +13,8 @@ let { pubkey }: { pubkey: string } = $props();
 
 let badges: BadgeDefinition[] = $state([]);
 let loadingBadges = $state(true);
+let receivedBadges: BadgeDefinitionWithPubkey[] = $state([]);
+let loadingReceivedBadges = $state(true);
 let profile: UserProfile | null = $state(null);
 let loadingProfile = $state(true);
 
@@ -36,6 +39,32 @@ $effect(() => {
     },
     error: () => {
       loadingProfile = false;
+    },
+  });
+
+  return () => {
+    subscription.unsubscribe();
+    clearTimeout(timeoutId);
+  };
+});
+
+// Fetch badges received by this user
+$effect(() => {
+  receivedBadges = [];
+  loadingReceivedBadges = true;
+
+  const timeoutId = setTimeout(() => {
+    loadingReceivedBadges = false;
+  }, 8000);
+
+  const subscription = resolveReceivedBadges(pubkey).subscribe({
+    next: (b) => {
+      receivedBadges = b;
+      loadingReceivedBadges = false;
+      clearTimeout(timeoutId);
+    },
+    error: () => {
+      loadingReceivedBadges = false;
     },
   });
 
@@ -103,6 +132,41 @@ function shortNpub(n: string): string {
         {profile?.displayName || profile?.name || shortNpub(npub)}
       </h2>
       <p class="text-xs text-gray-400 font-mono mt-1">{shortNpub(npub)}</p>
+    {/if}
+  </div>
+
+  <!-- Received badges section -->
+  <div class="mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('receivedBadges')}</h3>
+
+    {#if loadingReceivedBadges}
+      <div class="flex flex-wrap gap-3">
+        {#each Array(4) as _}
+          <div class="w-14 h-14 rounded-full bg-gray-200 animate-pulse"></div>
+        {/each}
+      </div>
+    {:else if receivedBadges.length === 0}
+      <p class="text-sm text-gray-500">{$t('noReceivedBadges')}</p>
+    {:else}
+      <div class="flex flex-wrap gap-3">
+        {#each receivedBadges as badge (`${badge.pubkey}:${badge.dTag}`)}
+          <a
+            href="#/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
+            title={badge.name}
+            class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors flex-shrink-0 bg-gray-50"
+          >
+            {#if badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+              <img
+                src={badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+                alt={badge.name}
+                class="w-full h-full object-cover"
+              />
+            {:else}
+              <div class="w-full h-full flex items-center justify-center text-xl">📛</div>
+            {/if}
+          </a>
+        {/each}
+      </div>
     {/if}
   </div>
 

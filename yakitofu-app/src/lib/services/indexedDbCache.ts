@@ -2,7 +2,7 @@ import type { BadgeDefinition } from '../utils/badgeEventParser';
 import type { UserProfile } from '../utils/userProfileParser';
 
 const DB_NAME = 'yakitofu-cache';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const MAX_ENTRIES = 100;
 
 interface CachedProfile extends UserProfile {
@@ -20,6 +20,13 @@ interface CachedBadgeAwardees {
   issuerPubkey: string;
   dTag: string;
   awardees: Record<string, number>;
+  cachedAt: number;
+}
+
+interface CachedReceivedBadgeAwards {
+  key: string; // recipientPubkey
+  recipientPubkey: string;
+  awards: Array<{ issuerPubkey: string; dTag: string }>;
   cachedAt: number;
 }
 
@@ -49,6 +56,11 @@ function openCacheDB(): Promise<IDBDatabase> {
           keyPath: 'key',
         });
         awardeeStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('receivedBadgeAwards')) {
+        const receivedStore = db.createObjectStore('receivedBadgeAwards', { keyPath: 'key' });
+        receivedStore.createIndex('cachedAt', 'cachedAt', { unique: false });
       }
     };
 
@@ -302,6 +314,58 @@ export async function setCachedBadgeAwardees(
     issuerPubkey,
     dTag,
     awardees: Object.fromEntries(awardees),
+    cachedAt: Date.now(),
+  };
+  await new Promise<void>((resolve, reject) => {
+    const req = store.put(entry);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getCachedReceivedBadgeAwards(
+  recipientPubkey: string,
+): Promise<{ awards: Array<{ issuerPubkey: string; dTag: string }>; cachedAt: number } | null> {
+  const db = await openCacheDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('receivedBadgeAwards', 'readonly');
+    const req = tx.objectStore('receivedBadgeAwards').get(recipientPubkey);
+    req.onsuccess = () => {
+      const result = req.result as CachedReceivedBadgeAwards | undefined;
+      if (!result) {
+        resolve(null);
+        return;
+      }
+      resolve({ awards: result.awards, cachedAt: result.cachedAt });
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function setCachedReceivedBadgeAwards(
+  recipientPubkey: string,
+  awards: Array<{ issuerPubkey: string; dTag: string }>,
+): Promise<void> {
+  const db = await openCacheDB();
+
+  const tx = db.transaction('receivedBadgeAwards', 'readwrite');
+  const store = tx.objectStore('receivedBadgeAwards');
+
+  const existing = await new Promise<CachedReceivedBadgeAwards | undefined>((resolve, reject) => {
+    const req = store.get(recipientPubkey);
+    req.onsuccess = () => resolve(req.result as CachedReceivedBadgeAwards | undefined);
+    req.onerror = () => reject(req.error);
+  });
+
+  if (!existing) {
+    await evictOldestIfNeeded(tx, 'receivedBadgeAwards');
+  }
+
+  const entry: CachedReceivedBadgeAwards = {
+    key: recipientPubkey,
+    recipientPubkey,
+    awards,
     cachedAt: Date.now(),
   };
   await new Promise<void>((resolve, reject) => {

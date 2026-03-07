@@ -140,6 +140,20 @@ export function getUserProfiles(pubkeys: string[]) {
   return { observable, req, filters };
 }
 
+// Get badge award events received by a user (kind 8, filtered by p tag)
+export function getUserReceivedBadgeAwards(recipientPubkey: string) {
+  const filters = [
+    {
+      kinds: [8],
+      '#p': [recipientPubkey],
+    },
+  ];
+
+  const { observable, req } = fetchPastEvents(filters);
+
+  return { observable, req, filters };
+}
+
 // Search badge definitions by dTag across all authors
 export function searchBadgesByDTag(dTag: string) {
   const filters = [
