@@ -1,22 +1,19 @@
 import { Observable, BehaviorSubject, from, defer } from 'rxjs';
-import { tap, switchMap } from 'rxjs/operators';
+import { tap, switchMap, timeout, distinctUntilChanged } from 'rxjs/operators';
 import type { Subscription } from 'rxjs';
 import {
   getCachedReceivedBadgeAwards,
   setCachedReceivedBadgeAwards,
 } from './indexedDbCache';
-import { getUserReceivedBadgeAwards, waitForConnection } from './nostr';
-import { resolveBadgeDefinition, type BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
+import { getUserReceivedBadgeAwards, getBadgeDefinition, waitForConnection } from './nostr';
+import { parseBadgeEvent } from '../utils/badgeEventParser';
+import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
+import { completeOnTimeout } from 'rx-nostr';
 
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-interface AwardEntry {
-  issuerPubkey: string;
-  dTag: string;
-}
-
 interface CachedEntry {
-  awards: AwardEntry[];
+  badges: BadgeDefinitionWithPubkey[];
   cachedAt: number;
 }
 
@@ -27,174 +24,172 @@ function isFresh(entry: CachedEntry): boolean {
   return Date.now() - entry.cachedAt < TTL_MS;
 }
 
-/** 既存キャッシュと relay 取得結果をマージして重複を除いたリストを返す */
-function mergeAwards(existing: AwardEntry[], incoming: AwardEntry[]): AwardEntry[] {
-  const merged = [...existing];
-  for (const award of incoming) {
-    const key = `${award.issuerPubkey}:${award.dTag}`;
-    if (!merged.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
-      merged.push(award);
+/** 既存キャッシュと新規取得バッジをマージ（同一 pubkey:dTag は新しい createdAt を優先）*/
+function mergeBadges(
+  existing: BadgeDefinitionWithPubkey[],
+  incoming: BadgeDefinitionWithPubkey[],
+): BadgeDefinitionWithPubkey[] {
+  const map = new Map<string, BadgeDefinitionWithPubkey>();
+  for (const badge of existing) {
+    map.set(`${badge.pubkey}:${badge.dTag}`, badge);
+  }
+  for (const badge of incoming) {
+    const key = `${badge.pubkey}:${badge.dTag}`;
+    const ex = map.get(key);
+    if (!ex || badge.createdAt >= ex.createdAt) {
+      map.set(key, badge);
     }
   }
-  return merged;
+  return Array.from(map.values());
 }
 
 /**
- * Resolve received badges for a user (3-layer: memory -> IndexedDB -> relay).
- * Cache TTL is 10 minutes — if cache is fresh, the relay is not queried.
- * Returns Observable<BadgeDefinitionWithPubkey[]> that emits as badges resolve.
+ * Resolve received badges for a user (2-layer: memory/IndexedDB cache -> relay).
+ * Cache TTL is 10 minutes — if cache is fresh, the relay is not queried at all.
+ * When relay is needed: collect all kind 8 award events until EOSE, then fetch
+ * each badge definition (kind 30009) directly from relay in parallel.
+ * Returns Observable<BadgeDefinitionWithPubkey[]> that emits once and completes.
  */
 export function resolveReceivedBadges(
   recipientPubkey: string,
 ): Observable<BadgeDefinitionWithPubkey[]> {
   return defer(() => {
     const subject = new BehaviorSubject<BadgeDefinitionWithPubkey[]>([]);
-    const seen = new Set<string>(); // "issuerPubkey:dTag"
-    const resolvedKeys = new Set<string>(); // 解決済みバッジのキー
-    let pipelineDone = false;
-    let inBatch = false; // バッチ処理中フラグ
-    const badgeSubscriptions: Subscription[] = [];
-    const badges: BadgeDefinitionWithPubkey[] = [];
-
-    function upsertBadge(badge: BadgeDefinitionWithPubkey): void {
-      const idx = badges.findIndex((b) => b.pubkey === badge.pubkey && b.dTag === badge.dTag);
-      if (idx >= 0) {
-        badges[idx] = badge;
-      } else {
-        badges.push(badge);
-      }
-      subject.next([...badges]);
-    }
-
-    function checkAndComplete(): void {
-      const allResolved = pipelineDone && seen.size > 0 && resolvedKeys.size >= seen.size;
-      const noAwards = pipelineDone && seen.size === 0;
-      if (allResolved || noAwards) {
-        subject.complete();
-      }
-    }
-
-    function resolveAndTrack(issuerPubkey: string, dTag: string): void {
-      const key = `${issuerPubkey}:${dTag}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      const sub = resolveBadgeDefinition(issuerPubkey, dTag).subscribe({
-        next: (badge) => {
-          if (!badge) return;
-          upsertBadge(badge);
-          if (!resolvedKeys.has(key)) {
-            resolvedKeys.add(key);
-            if (!inBatch) checkAndComplete();
-          }
-        },
-        complete: () => {
-          if (!resolvedKeys.has(key)) {
-            resolvedKeys.add(key);
-            if (!inBatch) checkAndComplete();
-          }
-        },
-      });
-      badgeSubscriptions.push(sub);
-    }
-
-    function processBatch(awards: AwardEntry[]): void {
-      inBatch = true;
-      for (const { issuerPubkey, dTag } of awards) {
-        resolveAndTrack(issuerPubkey, dTag);
-      }
-      inBatch = false;
-      checkAndComplete();
-    }
 
     // 1. In-memory cache
     const memCached = receivedBadgesCache.get(recipientPubkey);
-    const memFresh = memCached !== undefined && isFresh(memCached);
     if (memCached) {
-      processBatch(memCached.awards);
+      if (isFresh(memCached)) {
+        subject.next(memCached.badges);
+        return subject.asObservable();
+      }
     }
 
-    // 2. IndexedDB (skip if in-memory is fresh) -> 3. Relay (skip if cache is fresh)
+    // 2. IndexedDB -> 3. Relay
     const pipeline$ = from(
-      memFresh
-        ? Promise.resolve<CachedEntry | null>(null)
-        : getCachedReceivedBadgeAwards(recipientPubkey).catch(() => null),
+      getCachedReceivedBadgeAwards(recipientPubkey).catch(() => null),
     ).pipe(
       tap((idbCached) => {
         if (!idbCached) return;
-        // Update in-memory if IDB is newer
         if (!memCached || idbCached.cachedAt > memCached.cachedAt) {
           receivedBadgesCache.set(recipientPubkey, idbCached);
+          subject.next(idbCached.badges);
         }
-        processBatch(idbCached.awards);
       }),
       switchMap((idbCached) => {
-        // Skip relay if either in-memory or IDB cache is fresh
-        const idbFresh = idbCached !== null && isFresh(idbCached);
-        if (memFresh || idbFresh) {
+        if (idbCached && isFresh(idbCached)) {
           return new Observable<void>((s) => s.complete());
         }
 
-        // 3. Relay query
-        const { observable, req, filters } = getUserReceivedBadgeAwards(recipientPubkey);
-        const relayAwards: AwardEntry[] = [];
+        // 3. Relay: kind 8 を EOSE まで収集してからバッジ定義を並列取得
+        const { observable: awardsObs, req: awardsReq, filters: awardsFilters } =
+          getUserReceivedBadgeAwards(recipientPubkey);
 
         return new Observable<void>((subscriber) => {
-          const subscription = observable.subscribe({
+          const awardEntries: Array<{ issuerPubkey: string; dTag: string }> = [];
+          const defSubs: Subscription[] = [];
+
+          const awardsSub = awardsObs.pipe(
+            distinctUntilChanged((a, b) => a.event.id === b.event.id), // 同一イベントの重複受信を防止
+            completeOnTimeout(3 * 1000), // 3秒でタイムアウトしてEOSEとみなす
+          ).subscribe({
             next: (packet) => {
-              const newAwards: AwardEntry[] = [];
               for (const tag of packet.event.tags) {
                 if (tag[0] !== 'a') continue;
                 const parts = (tag[1] ?? '').split(':');
                 if (parts.length < 3 || parts[0] !== '30009') continue;
+
                 const issuerPubkey = parts[1];
                 const dTag = parts.slice(2).join(':');
                 const key = `${issuerPubkey}:${dTag}`;
-                if (!relayAwards.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
-                  relayAwards.push({ issuerPubkey, dTag });
+                if (!awardEntries.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
+                  awardEntries.push({ issuerPubkey, dTag });
                 }
-                if (!seen.has(key)) newAwards.push({ issuerPubkey, dTag });
               }
-              if (newAwards.length > 0) processBatch(newAwards);
             },
             error: (err) => subscriber.error(err),
             complete: () => {
-              // EOSE received — 既存キャッシュとマージしてから保存する。
-              // 電波不良で一部のリレーが EOSE 前に応答しなかった場合でも、
-              // 過去に取得済みのバッジを失わないようにする。
-              const existingEntry = receivedBadgesCache.get(recipientPubkey);
-              const mergedAwards = mergeAwards(existingEntry?.awards ?? [], relayAwards);
-              const newEntry: CachedEntry = { awards: mergedAwards, cachedAt: Date.now() };
-              receivedBadgesCache.set(recipientPubkey, newEntry);
-              setCachedReceivedBadgeAwards(recipientPubkey, mergedAwards).catch(console.error);
-              subscriber.complete();
+              // EOSE — awards リスト確定。バッジ定義をリレーから並列取得する
+              if (awardEntries.length === 0) {
+                finalize([]);
+                return;
+              }
+
+              let remaining = awardEntries.length;
+              const fetched: BadgeDefinitionWithPubkey[] = [];
+
+              for (const { issuerPubkey, dTag } of awardEntries) {
+                const { observable: defObs, req: defReq, filters: defFilters } =
+                  getBadgeDefinition(issuerPubkey, dTag);
+                let found = false;
+
+                const defSub = defObs.pipe(
+                  completeOnTimeout(5 * 1000) // 5秒でタイムアウトしてEOSEとみなす
+                ).subscribe({
+                  next: (packet) => {
+                    if (found) return;
+                    const event = packet.event;
+                    if (event.pubkey !== issuerPubkey) return;
+                    const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
+                    if (eventDTag !== dTag) return;
+                    fetched.push({ ...parseBadgeEvent(event), pubkey: issuerPubkey });
+                    found = true;
+                  },
+                  error: () => {
+                    remaining--;
+                    if (remaining === 0) finalize(fetched);
+                  },
+                  complete: () => {
+                    remaining--;
+                    if (remaining === 0) finalize(fetched);
+                  },
+                });
+                defSubs.push(defSub);
+
+                waitForConnection().then(() => {
+                  if (!defSub.closed) {
+                    defReq.emit(defFilters);
+                    defReq.over(); // EOSE 後に observable が complete できるよう単発化する
+                  }
+                });
+              }
+
+              function finalize(resolved: BadgeDefinitionWithPubkey[]): void {
+                // 電波不良で一部リレーが応答しなかった場合でも既存キャッシュと
+                // マージすることで過去取得済みバッジを失わないようにする
+                const existing = receivedBadgesCache.get(recipientPubkey);
+                const merged = mergeBadges(existing?.badges ?? [], resolved);
+                const newEntry: CachedEntry = { badges: merged, cachedAt: Date.now() };
+                receivedBadgesCache.set(recipientPubkey, newEntry);
+                setCachedReceivedBadgeAwards(recipientPubkey, merged).catch(console.error);
+                subject.next(merged);
+                subscriber.complete();
+              }
             },
           });
 
           waitForConnection().then(() => {
-            if (!subscription.closed) req.emit(filters);
+            if (!awardsSub.closed) {
+              awardsReq.emit(awardsFilters);
+              awardsReq.over(); // EOSE 後に observable が complete できるよう単発化する
+            }
           });
 
-          return () => subscription.unsubscribe();
+          return () => {
+            awardsSub.unsubscribe();
+            for (const sub of defSubs) sub.unsubscribe();
+          };
         });
       }),
     );
 
     const pipelineSub = pipeline$.subscribe({
       error: (err) => subject.error(err),
-      complete: () => {
-        pipelineDone = true;
-        checkAndComplete();
-      },
+      complete: () => subject.complete(),
     });
 
     return subject.asObservable().pipe(
-      tap({
-        unsubscribe: () => {
-          pipelineSub.unsubscribe();
-          for (const sub of badgeSubscriptions) sub.unsubscribe();
-        },
-      }),
+      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
     );
   });
 }

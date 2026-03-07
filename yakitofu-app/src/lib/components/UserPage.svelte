@@ -55,11 +55,15 @@ $effect(() => {
 
   const timeoutId = setTimeout(() => {
     loadingReceivedBadges = false;
-  }, 8000);
+  }, 40 * 1000);
 
   const subscription = resolveReceivedBadges(pubkey).subscribe({
     next: (b) => {
       receivedBadges = b;
+      if(b.length > 0) {
+        loadingReceivedBadges = false;
+        clearTimeout(timeoutId);
+      }
     },
     complete: () => {
       loadingReceivedBadges = false;
