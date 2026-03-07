@@ -62,8 +62,12 @@ const translations: Translations = {
     ja: 'IDなし',
   },
   badgeIdPlaceholder: {
-    en: 'e.g., bravery',
-    ja: '例: bravery',
+    en: 'e.g., bravery or 🎉',
+    ja: '例: bravery または 🎉',
+  },
+  invalidBadgeId: {
+    en: 'Invalid badge ID. Spaces are not allowed.',
+    ja: 'バッジIDが無効です。空白文字は使用できません。',
   },
   badgeName: {
     en: 'Badge Name',
@@ -322,8 +326,8 @@ const translations: Translations = {
     ja: 'バッジを検索中...',
   },
   invalidSearchQuery: {
-    en: 'Please enter a valid npub or Badge ID (lowercase alphanumeric and hyphens).',
-    ja: '有効なnpubまたはバッジID（半角英小文字・数字・ハイフン）を入力してください。',
+    en: 'Please enter a valid npub or Badge ID (no spaces).',
+    ja: '有効なnpubまたはバッジID（空白文字は不可）を入力してください。',
   },
 };
 

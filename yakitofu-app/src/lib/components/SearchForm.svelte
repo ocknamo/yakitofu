@@ -18,7 +18,7 @@ function handleSearch() {
   }
 
   if (isValidBadgeId(trimmed)) {
-    window.location.hash = `#/search/${trimmed}`;
+    window.location.hash = `#/search/${encodeURIComponent(trimmed)}`;
     query = '';
     return;
   }

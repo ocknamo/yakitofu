@@ -118,7 +118,7 @@
     }
 
     if (!isValidBadgeId(badgeId)) {
-      message = 'Invalid badge ID. Use lowercase letters, numbers, and hyphens only.';
+      message = $t('invalidBadgeId');
       messageType = 'error';
       return;
     }
@@ -241,7 +241,6 @@
         bind:value={badgeId}
         placeholder={$t('badgeIdPlaceholder')}
         required
-        pattern="[a-z0-9-]+"
         disabled={editMode && selectedBadgeForEdit !== ''}
         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
       />
