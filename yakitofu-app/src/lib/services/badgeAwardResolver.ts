@@ -27,6 +27,18 @@ function isFresh(entry: CachedEntry): boolean {
   return Date.now() - entry.cachedAt < TTL_MS;
 }
 
+/** 既存キャッシュと relay 取得結果をマージして重複を除いたリストを返す */
+function mergeAwards(existing: AwardEntry[], incoming: AwardEntry[]): AwardEntry[] {
+  const merged = [...existing];
+  for (const award of incoming) {
+    const key = `${award.issuerPubkey}:${award.dTag}`;
+    if (!merged.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
+      merged.push(award);
+    }
+  }
+  return merged;
+}
+
 /**
  * Resolve received badges for a user (3-layer: memory -> IndexedDB -> relay).
  * Cache TTL is 10 minutes — if cache is fresh, the relay is not queried.
@@ -147,10 +159,14 @@ export function resolveReceivedBadges(
             },
             error: (err) => subscriber.error(err),
             complete: () => {
-              // EOSE received — persist to caches
-              const newEntry: CachedEntry = { awards: relayAwards, cachedAt: Date.now() };
+              // EOSE received — 既存キャッシュとマージしてから保存する。
+              // 電波不良で一部のリレーが EOSE 前に応答しなかった場合でも、
+              // 過去に取得済みのバッジを失わないようにする。
+              const existingEntry = receivedBadgesCache.get(recipientPubkey);
+              const mergedAwards = mergeAwards(existingEntry?.awards ?? [], relayAwards);
+              const newEntry: CachedEntry = { awards: mergedAwards, cachedAt: Date.now() };
               receivedBadgesCache.set(recipientPubkey, newEntry);
-              setCachedReceivedBadgeAwards(recipientPubkey, relayAwards).catch(console.error);
+              setCachedReceivedBadgeAwards(recipientPubkey, mergedAwards).catch(console.error);
               subscriber.complete();
             },
           });
