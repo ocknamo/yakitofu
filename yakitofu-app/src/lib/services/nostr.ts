@@ -15,6 +15,7 @@ export const rxNostr = createRxNostr({
 });
 
 let connectionStateSubscription: Subscription | null = null;
+let _connected = false;
 
 // Initialize with relays
 export function initializeRelays(
@@ -22,25 +23,23 @@ export function initializeRelays(
   onConnectionChange?: (relay: string, connected: boolean) => void
 ) {
   rxNostr.setDefaultRelays(relays);
+  _connected = false;
 
   // Clean up existing subscription
   if (connectionStateSubscription) {
     connectionStateSubscription.unsubscribe();
   }
 
-  // Subscribe to connection state changes if callback provided
-  if (onConnectionChange) {
-    connectionStateSubscription = rxNostr.createConnectionStateObservable().subscribe((packet) => {
-      console.log('Connection state packet:', packet);
-      // According to rx-nostr docs, packet.state is the connection state string
-      // We need to check all relays
+  // Always subscribe to track connection state (also used by waitForConnection)
+  connectionStateSubscription = rxNostr.createConnectionStateObservable().subscribe((packet) => {
+    console.log('Connection state packet:', packet);
+    if (packet.state === 'connected') _connected = true;
+    if (onConnectionChange) {
       relays.forEach((relay) => {
-        // For now, mark all as connected when we get any state update
-        // This is a simplified approach - ideally we'd track individual relay states
         onConnectionChange(relay, packet.state === 'connected');
       });
-    });
-  }
+    }
+  });
 }
 
 // Publish event to relays
@@ -170,6 +169,7 @@ export function searchBadgesByDTag(dTag: string) {
 
 // Wait for at least one relay to be connected (or timeout)
 export function waitForConnection(timeoutMs = 3000): Promise<void> {
+  if (_connected) return Promise.resolve();
   return new Promise((resolve) => {
     const stateObs = rxNostr.createConnectionStateObservable();
     const timeoutId = setTimeout(resolve, timeoutMs);
@@ -185,6 +185,7 @@ export function waitForConnection(timeoutMs = 3000): Promise<void> {
 
 // Cleanup
 export function cleanup() {
+  _connected = false;
   if (connectionStateSubscription) {
     connectionStateSubscription.unsubscribe();
     connectionStateSubscription = null;
