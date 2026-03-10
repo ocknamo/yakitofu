@@ -1,5 +1,6 @@
 <script lang="ts">
 import './app.css';
+import { createConsoleViewer } from 'console-daijin';
 import { onMount } from 'svelte';
 import BadgeAwardForm from './lib/components/BadgeAwardForm.svelte';
 import BadgeDefinitionForm from './lib/components/BadgeDefinitionForm.svelte';
@@ -82,6 +83,8 @@ onMount(() => {
   setTimeout(() => {
     authStore.checkExtension();
   }, 100);
+
+  createConsoleViewer({ show: 'iframe' });
 });
 </script>
 
