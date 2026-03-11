@@ -25,19 +25,15 @@ let activeTab: Tab = $state('create');
 // npub = npub1 + 58 bech32 chars = 63 chars total
 // dTag = any non-empty string including emoji and Unicode (percent-encoded in URL)
 function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
-  console.log('[App] parseBadgeRoute: hash =', hash);
   const match = hash.match(/^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):(.*)$/);
   if (!match) {
-    console.log('[App] parseBadgeRoute: no match');
     return null;
   }
   try {
     const pubkey = npubToHex(match[1]);
     const dTag = decodeURIComponent(match[2]);
-    console.log('[App] parseBadgeRoute: parsed pubkey =', pubkey, 'dTag =', dTag);
     return { pubkey, dTag };
-  } catch (e) {
-    console.error('[App] parseBadgeRoute: error parsing route', e);
+  } catch {
     return null;
   }
 }
@@ -72,7 +68,6 @@ let searchRoute = $derived(parseSearchRoute(currentHash));
 
 $effect(() => {
   const onHashChange = () => {
-    console.log('[App] hashchange: new hash =', window.location.hash);
     currentHash = window.location.hash;
   };
   window.addEventListener('hashchange', onHashChange);
