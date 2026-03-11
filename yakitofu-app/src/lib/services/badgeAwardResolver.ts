@@ -11,6 +11,7 @@ import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
 import { completeOnTimeout } from 'rx-nostr';
 
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
+const EMPTY_TTL_MS = 30 * 1000; // 30 seconds (for empty results to avoid caching relay failures)
 
 interface CachedEntry {
   badges: BadgeDefinitionWithPubkey[];
@@ -21,7 +22,8 @@ interface CachedEntry {
 const receivedBadgesCache = new Map<string, CachedEntry>();
 
 function isFresh(entry: CachedEntry): boolean {
-  return Date.now() - entry.cachedAt < TTL_MS;
+  const ttl = entry.badges.length === 0 ? EMPTY_TTL_MS : TTL_MS;
+  return Date.now() - entry.cachedAt < ttl;
 }
 
 /** 既存キャッシュと新規取得バッジをマージ（同一 pubkey:dTag は新しい createdAt を優先）*/
