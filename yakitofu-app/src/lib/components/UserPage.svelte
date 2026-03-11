@@ -50,15 +50,18 @@ $effect(() => {
 
 // Fetch badges received by this user
 $effect(() => {
+  console.log('[UserPage] $effect: starting received badges fetch for pubkey =', pubkey);
   receivedBadges = [];
   loadingReceivedBadges = true;
 
   const timeoutId = setTimeout(() => {
+    console.warn('[UserPage] received badges fetch timed out after 40s');
     loadingReceivedBadges = false;
   }, 40 * 1000);
 
   const subscription = resolveReceivedBadges(pubkey).subscribe({
     next: (b) => {
+      console.log('[UserPage] resolveReceivedBadges emitted: count =', b.length, b);
       receivedBadges = b;
       if(b.length > 0) {
         loadingReceivedBadges = false;
@@ -66,10 +69,12 @@ $effect(() => {
       }
     },
     complete: () => {
+      console.log('[UserPage] resolveReceivedBadges completed, final count =', receivedBadges.length);
       loadingReceivedBadges = false;
       clearTimeout(timeoutId);
     },
-    error: () => {
+    error: (err) => {
+      console.error('[UserPage] resolveReceivedBadges error:', err);
       loadingReceivedBadges = false;
     },
   });
