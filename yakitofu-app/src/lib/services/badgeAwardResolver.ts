@@ -100,111 +100,115 @@ export function resolveReceivedBadges(
         return new Observable<void>((subscriber) => {
           const awardEntries: Array<{ issuerPubkey: string; dTag: string }> = [];
           const defSubs: Subscription[] = [];
+          let awardsSub: Subscription | undefined;
+          let cancelled = false;
 
-          const awardsSub = awardsObs.pipe(
-            distinctUntilChanged((a, b) => a.event.id === b.event.id), // 同一イベントの重複受信を防止
-            completeOnTimeout(3 * 1000), // 3秒でタイムアウトしてEOSEとみなす
-          ).subscribe({
-            next: (packet) => {
-              console.log('[BadgeAwardResolver] kind 8 event received: id =', packet.event.id, 'tags =', packet.event.tags);
-              for (const tag of packet.event.tags) {
-                if (tag[0] !== 'a') continue;
-                const parts = (tag[1] ?? '').split(':');
-                if (parts.length < 3 || parts[0] !== '30009') continue;
-
-                const issuerPubkey = parts[1];
-                const dTag = parts.slice(2).join(':');
-                const key = `${issuerPubkey}:${dTag}`;
-                if (!awardEntries.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
-                  awardEntries.push({ issuerPubkey, dTag });
-                }
-              }
-            },
-            error: (err) => subscriber.error(err),
-            complete: () => {
-              console.log('[BadgeAwardResolver] kind 8 collection complete (EOSE/timeout): awardEntries =', awardEntries);
-              // EOSE — awards リスト確定。バッジ定義をリレーから並列取得する
-              if (awardEntries.length === 0) {
-                console.log('[BadgeAwardResolver] no award entries found, finalizing with empty array');
-                finalize([]);
-                return;
-              }
-
-              let remaining = awardEntries.length;
-              const fetched: BadgeDefinitionWithPubkey[] = [];
-              console.log('[BadgeAwardResolver] fetching', awardEntries.length, 'badge definitions in parallel');
-
-              for (const { issuerPubkey, dTag } of awardEntries) {
-                const { observable: defObs, req: defReq, filters: defFilters } =
-                  getBadgeDefinition(issuerPubkey, dTag);
-                let found = false;
-                console.log('[BadgeAwardResolver] fetching badge definition: issuerPubkey =', issuerPubkey, 'dTag =', dTag);
-
-                const defSub = defObs.pipe(
-                  completeOnTimeout(5 * 1000) // 5秒でタイムアウトしてEOSEとみなす
-                ).subscribe({
-                  next: (packet) => {
-                    if (found) return;
-                    const event = packet.event;
-                    console.log('[BadgeAwardResolver] badge definition event received: id =', event.id, 'pubkey =', event.pubkey, 'tags =', event.tags);
-                    if (event.pubkey !== issuerPubkey) return;
-                    const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
-                    if (eventDTag !== dTag) return;
-                    const parsed = parseBadgeEvent(event);
-                    console.log('[BadgeAwardResolver] badge definition parsed:', parsed);
-                    fetched.push({ ...parsed, pubkey: issuerPubkey });
-                    found = true;
-                  },
-                  error: (err) => {
-                    console.error('[BadgeAwardResolver] badge definition fetch error for', issuerPubkey, dTag, err);
-                    remaining--;
-                    if (remaining === 0) finalize(fetched);
-                  },
-                  complete: () => {
-                    if (!found) {
-                      console.warn('[BadgeAwardResolver] badge definition not found (timeout/EOSE): issuerPubkey =', issuerPubkey, 'dTag =', dTag);
-                    }
-                    remaining--;
-                    console.log('[BadgeAwardResolver] badge definition complete, remaining =', remaining);
-                    if (remaining === 0) finalize(fetched);
-                  },
-                });
-                defSubs.push(defSub);
-
-                waitForConnection().then(() => {
-                  if (!defSub.closed) {
-                    defReq.emit(defFilters);
-                    defReq.over(); // EOSE 後に observable が complete できるよう単発化する
-                  }
-                });
-              }
-
-              function finalize(resolved: BadgeDefinitionWithPubkey[]): void {
-                console.log('[BadgeAwardResolver] finalize: resolved count =', resolved.length, resolved);
-                // 電波不良で一部リレーが応答しなかった場合でも既存キャッシュと
-                // マージすることで過去取得済みバッジを失わないようにする
-                const existing = receivedBadgesCache.get(recipientPubkey);
-                const merged = mergeBadges(existing?.badges ?? [], resolved);
-                console.log('[BadgeAwardResolver] finalize: merged count =', merged.length);
-                const newEntry: CachedEntry = { badges: merged, cachedAt: Date.now() };
-                receivedBadgesCache.set(recipientPubkey, newEntry);
-                setCachedReceivedBadgeAwards(recipientPubkey, merged).catch(console.error);
-                subject.next(merged);
-                subscriber.complete();
-              }
-            },
-          });
-
+          // emit してからサブスクライブすることで completeOnTimeout のタイマーを
+          // リレーへのリクエスト送信後に開始させる（接続待ち中にタイムアウトしない）
           waitForConnection().then(() => {
+            if (cancelled) return;
             console.log('[BadgeAwardResolver] connection ready, emitting kind 8 req filters:', awardsFilters);
-            if (!awardsSub.closed) {
-              awardsReq.emit(awardsFilters);
-              awardsReq.over(); // EOSE 後に observable が complete できるよう単発化する
-            }
+            awardsReq.emit(awardsFilters);
+            awardsReq.over(); // EOSE 後に observable が complete できるよう単発化する
+
+            awardsSub = awardsObs.pipe(
+              distinctUntilChanged((a, b) => a.event.id === b.event.id), // 同一イベントの重複受信を防止
+              completeOnTimeout(3 * 1000), // 3秒でタイムアウトしてEOSEとみなす
+            ).subscribe({
+              next: (packet) => {
+                console.log('[BadgeAwardResolver] kind 8 event received: id =', packet.event.id, 'tags =', packet.event.tags);
+                for (const tag of packet.event.tags) {
+                  if (tag[0] !== 'a') continue;
+                  const parts = (tag[1] ?? '').split(':');
+                  if (parts.length < 3 || parts[0] !== '30009') continue;
+
+                  const issuerPubkey = parts[1];
+                  const dTag = parts.slice(2).join(':');
+                  const key = `${issuerPubkey}:${dTag}`;
+                  if (!awardEntries.some((a) => `${a.issuerPubkey}:${a.dTag}` === key)) {
+                    awardEntries.push({ issuerPubkey, dTag });
+                  }
+                }
+              },
+              error: (err) => subscriber.error(err),
+              complete: () => {
+                console.log('[BadgeAwardResolver] kind 8 collection complete (EOSE/timeout): awardEntries =', awardEntries);
+                // EOSE — awards リスト確定。バッジ定義をリレーから並列取得する
+                if (awardEntries.length === 0) {
+                  console.log('[BadgeAwardResolver] no award entries found, finalizing with empty array');
+                  finalize([]);
+                  return;
+                }
+
+                let remaining = awardEntries.length;
+                const fetched: BadgeDefinitionWithPubkey[] = [];
+                console.log('[BadgeAwardResolver] fetching', awardEntries.length, 'badge definitions in parallel');
+
+                for (const { issuerPubkey, dTag } of awardEntries) {
+                  const { observable: defObs, req: defReq, filters: defFilters } =
+                    getBadgeDefinition(issuerPubkey, dTag);
+                  let found = false;
+                  console.log('[BadgeAwardResolver] fetching badge definition: issuerPubkey =', issuerPubkey, 'dTag =', dTag);
+
+                  const defSub = defObs.pipe(
+                    completeOnTimeout(5 * 1000) // 5秒でタイムアウトしてEOSEとみなす
+                  ).subscribe({
+                    next: (packet) => {
+                      if (found) return;
+                      const event = packet.event;
+                      console.log('[BadgeAwardResolver] badge definition event received: id =', event.id, 'pubkey =', event.pubkey, 'tags =', event.tags);
+                      if (event.pubkey !== issuerPubkey) return;
+                      const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
+                      if (eventDTag !== dTag) return;
+                      const parsed = parseBadgeEvent(event);
+                      console.log('[BadgeAwardResolver] badge definition parsed:', parsed);
+                      fetched.push({ ...parsed, pubkey: issuerPubkey });
+                      found = true;
+                    },
+                    error: (err) => {
+                      console.error('[BadgeAwardResolver] badge definition fetch error for', issuerPubkey, dTag, err);
+                      remaining--;
+                      if (remaining === 0) finalize(fetched);
+                    },
+                    complete: () => {
+                      if (!found) {
+                        console.warn('[BadgeAwardResolver] badge definition not found (timeout/EOSE): issuerPubkey =', issuerPubkey, 'dTag =', dTag);
+                      }
+                      remaining--;
+                      console.log('[BadgeAwardResolver] badge definition complete, remaining =', remaining);
+                      if (remaining === 0) finalize(fetched);
+                    },
+                  });
+                  defSubs.push(defSub);
+
+                  waitForConnection().then(() => {
+                    if (!defSub.closed) {
+                      defReq.emit(defFilters);
+                      defReq.over(); // EOSE 後に observable が complete できるよう単発化する
+                    }
+                  });
+                }
+
+                function finalize(resolved: BadgeDefinitionWithPubkey[]): void {
+                  console.log('[BadgeAwardResolver] finalize: resolved count =', resolved.length, resolved);
+                  // 電波不良で一部リレーが応答しなかった場合でも既存キャッシュと
+                  // マージすることで過去取得済みバッジを失わないようにする
+                  const existing = receivedBadgesCache.get(recipientPubkey);
+                  const merged = mergeBadges(existing?.badges ?? [], resolved);
+                  console.log('[BadgeAwardResolver] finalize: merged count =', merged.length);
+                  const newEntry: CachedEntry = { badges: merged, cachedAt: Date.now() };
+                  receivedBadgesCache.set(recipientPubkey, newEntry);
+                  setCachedReceivedBadgeAwards(recipientPubkey, merged).catch(console.error);
+                  subject.next(merged);
+                  subscriber.complete();
+                }
+              },
+            });
           });
 
           return () => {
-            awardsSub.unsubscribe();
+            cancelled = true;
+            awardsSub?.unsubscribe();
             for (const sub of defSubs) sub.unsubscribe();
           };
         });
