@@ -26,10 +26,13 @@ let activeTab: Tab = $state('create');
 // dTag = any non-empty string including emoji and Unicode (percent-encoded in URL)
 function parseBadgeRoute(hash: string): { pubkey: string; dTag: string } | null {
   const match = hash.match(/^#\/badge\/(npub1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}):(.*)$/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   try {
     const pubkey = npubToHex(match[1]);
-    return { pubkey, dTag: decodeURIComponent(match[2]) };
+    const dTag = decodeURIComponent(match[2]);
+    return { pubkey, dTag };
   } catch {
     return null;
   }

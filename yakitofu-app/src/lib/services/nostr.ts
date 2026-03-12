@@ -172,7 +172,6 @@ export function waitForConnection(timeoutMs = 3000): Promise<void> {
   if (_connected) return Promise.resolve();
   return new Promise((resolve) => {
     const stateObs = rxNostr.createConnectionStateObservable();
-    const timeoutId = setTimeout(resolve, timeoutMs);
     const sub = stateObs.subscribe((packet) => {
       if (packet.state === 'connected') {
         clearTimeout(timeoutId);
@@ -180,6 +179,10 @@ export function waitForConnection(timeoutMs = 3000): Promise<void> {
         resolve();
       }
     });
+    const timeoutId = setTimeout(() => {
+      sub.unsubscribe();
+      resolve();
+    }, timeoutMs);
   });
 }
 
