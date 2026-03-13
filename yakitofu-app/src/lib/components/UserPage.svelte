@@ -159,11 +159,11 @@ function shortNpub(n: string): string {
           <a
             href="#/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
             title={badge.name}
-            class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors flex-shrink-0 bg-gray-50"
+            class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors shrink-0 bg-gray-50"
           >
-            {#if badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+            {#if badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
               <img
-                src={badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+                src={badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
                 alt={badge.name}
                 class="w-full h-full object-cover"
               />
