@@ -87,7 +87,7 @@ onMount(() => {
     authStore.checkExtension();
   }, 100);
 
-  createConsoleViewer({ show: 'iframe' });
+  createConsoleViewer();
 });
 </script>
 
