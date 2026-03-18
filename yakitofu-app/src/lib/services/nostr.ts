@@ -1,12 +1,7 @@
-import {
-  createRxNostr,
-  createRxForwardReq,
-  createRxBackwardReq,
-  type EventPacket,
-} from 'rx-nostr';
+import { createRxBackwardReq, createRxForwardReq, createRxNostr, type EventPacket } from 'rx-nostr';
 import { verifier } from 'rx-nostr-crypto';
-import type { NostrEvent } from '../../types/nostr';
 import type { Subscription } from 'rxjs';
+import type { NostrEvent } from '../../types/nostr';
 
 // Create RxNostr instance with Aggressive connection strategy
 export const rxNostr = createRxNostr({

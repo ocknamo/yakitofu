@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { languageStore, type Language } from '../stores/i18n';
-  import languageIcon from '../../assets/lang.svg';
+import languageIcon from '../../assets/lang.svg';
+import { type Language, languageStore } from '../stores/i18n';
 
-  let currentLang = "";
-  languageStore.subscribe(lang => {
-    currentLang = lang;
-  });
+let currentLang = '';
+languageStore.subscribe((lang) => {
+  currentLang = lang;
+});
 
-  function switchLanguage() {
-    languageStore.setLanguage(currentLang === 'en' ? 'ja' : 'en');
-  }
+function switchLanguage() {
+  languageStore.setLanguage(currentLang === 'en' ? 'ja' : 'en');
+}
 </script>
 
 <div class="flex gap-1">

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { formatImageSize, isRecommendedSize, RECOMMENDED_SIZE, type ImageSize } from './imageUtils';
+import { describe, expect, it } from 'vitest';
+import { formatImageSize, type ImageSize, isRecommendedSize, RECOMMENDED_SIZE } from './imageUtils';
 
 describe('imageUtils', () => {
   describe('formatImageSize', () => {

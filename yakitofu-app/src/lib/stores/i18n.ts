@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 
 export type Language = 'en' | 'ja';
 
@@ -19,7 +19,7 @@ const translations: Translations = {
     en: 'NIP-58 Badge Creation & Award Application',
     ja: 'NIP-58 バッジ作成・付与アプリ',
   },
-  
+
   // Auth
   login: {
     en: 'Login by NIP-07',
@@ -37,7 +37,7 @@ const translations: Translations = {
     en: 'Logged in as',
     ja: 'ログイン中',
   },
-  
+
   // Tabs
   createBadge: {
     en: 'Create Badge',
@@ -51,7 +51,7 @@ const translations: Translations = {
     en: 'Settings',
     ja: '設定',
   },
-  
+
   // Badge Definition Form
   badgeId: {
     en: 'Badge ID',
@@ -161,7 +161,7 @@ const translations: Translations = {
     en: 'Select badge',
     ja: 'バッジを選択',
   },
-  
+
   // Badge Award Form
   selectBadge: {
     en: 'Select Badge',
@@ -179,7 +179,7 @@ const translations: Translations = {
     en: 'Award Badge',
     ja: 'バッジを付与',
   },
-  
+
   // Relay Settings
   currentRelays: {
     en: 'Current Relays',
@@ -205,7 +205,7 @@ const translations: Translations = {
     en: 'Remove',
     ja: '削除',
   },
-  
+
   // Messages
   success: {
     en: 'Success!',
@@ -235,7 +235,7 @@ const translations: Translations = {
     en: 'Please login first',
     ja: 'まずログインしてください',
   },
-  
+
   // Footer
   viewOnGitHub: {
     en: 'View on GitHub',
@@ -340,10 +340,9 @@ const translations: Translations = {
 };
 
 function createI18nStore() {
-  const storedLang = typeof window !== 'undefined' 
-    ? (localStorage.getItem('language') as Language) || 'en'
-    : 'en';
-  
+  const storedLang =
+    typeof window !== 'undefined' ? (localStorage.getItem('language') as Language) || 'en' : 'en';
+
   const { subscribe, set } = writable<Language>(storedLang);
 
   return {

@@ -1,6 +1,7 @@
 <script lang="ts">
+import { goto } from '$app/navigation';
 import { t } from '../stores/i18n';
-import { isValidNpub, isValidBadgeId } from '../utils/validation';
+import { isValidBadgeId, isValidNpub } from '../utils/validation';
 
 let query = $state('');
 let errorMessage = $state('');
@@ -12,13 +13,13 @@ function handleSearch() {
   errorMessage = '';
 
   if (isValidNpub(trimmed)) {
-    window.location.hash = `#/user/${trimmed}`;
+    goto(`/user/${trimmed}`);
     query = '';
     return;
   }
 
   if (isValidBadgeId(trimmed)) {
-    window.location.hash = `#/search/${encodeURIComponent(trimmed)}`;
+    goto(`/search/${encodeURIComponent(trimmed)}`);
     query = '';
     return;
   }

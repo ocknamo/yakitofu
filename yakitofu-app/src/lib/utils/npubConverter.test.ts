@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { npubToHex, hexToNpub } from './npubConverter';
+import { describe, expect, it } from 'vitest';
+import { hexToNpub, npubToHex } from './npubConverter';
 
 describe('npubConverter', () => {
   // Test vectors from NIP-19
@@ -20,7 +20,9 @@ describe('npubConverter', () => {
 
     it('should throw error for invalid npub format', () => {
       expect(() => npubToHex('invalid')).toThrow('Invalid npub format');
-      expect(() => npubToHex('nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toThrow();
+      expect(() =>
+        npubToHex('nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')
+      ).toThrow();
       expect(() => npubToHex('')).toThrow();
     });
 

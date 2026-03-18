@@ -1,21 +1,21 @@
 <script lang="ts">
-  let {
-    src,
-    placeholderSrc = '',
-    alt,
-    class: className = '',
-  }: {
-    src: string;
-    placeholderSrc?: string;
-    alt: string;
-    class?: string;
-  } = $props();
+let {
+  src,
+  placeholderSrc = '',
+  alt,
+  class: className = '',
+}: {
+  src: string;
+  placeholderSrc?: string;
+  alt: string;
+  class?: string;
+} = $props();
 
-  let loaded = $state(false);
+let loaded = $state(false);
 
-  function onLoad() {
-    loaded = true;
-  }
+function onLoad() {
+  loaded = true;
+}
 </script>
 
 <div class="progressive-image {className}">

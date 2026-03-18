@@ -5,7 +5,14 @@ export interface RelayState {
   connected: Set<string>;
 }
 
-const DEFAULT_RELAYS = ['wss://yabu.me', 'wss://relay.damus.io', 'wss://r.kojira.io', 'wss://nostr.bitcoiner.social', 'wss://nostr.land', 'wss://nostr.mom'];
+const DEFAULT_RELAYS = [
+  'wss://yabu.me',
+  'wss://relay.damus.io',
+  'wss://r.kojira.io',
+  'wss://nostr.bitcoiner.social',
+  'wss://nostr.land',
+  'wss://nostr.mom',
+];
 
 function createRelayStore() {
   const { subscribe, set, update } = writable<RelayState>({
@@ -16,7 +23,7 @@ function createRelayStore() {
   return {
     subscribe,
     addRelay: (relay: string) => {
-      update(state => {
+      update((state) => {
         if (!state.relays.includes(relay)) {
           return {
             ...state,
@@ -27,14 +34,14 @@ function createRelayStore() {
       });
     },
     removeRelay: (relay: string) => {
-      update(state => ({
+      update((state) => ({
         ...state,
-        relays: state.relays.filter(r => r !== relay),
-        connected: new Set([...state.connected].filter(r => r !== relay)),
+        relays: state.relays.filter((r) => r !== relay),
+        connected: new Set([...state.connected].filter((r) => r !== relay)),
       }));
     },
     setConnected: (relay: string, connected: boolean) => {
-      update(state => {
+      update((state) => {
         const newConnected = new Set(state.connected);
         if (connected) {
           newConnected.add(relay);

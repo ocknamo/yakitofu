@@ -21,7 +21,7 @@ function createAuthStore() {
       }
       try {
         const pubkey = await window.nostr.getPublicKey();
-        update(state => ({
+        update((state) => ({
           ...state,
           isLoggedIn: true,
           pubkey,
@@ -40,7 +40,7 @@ function createAuthStore() {
       });
     },
     checkExtension: () => {
-      update(state => ({
+      update((state) => ({
         ...state,
         hasNostrExtension: typeof window !== 'undefined' && !!window.nostr,
       }));

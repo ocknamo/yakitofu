@@ -1,47 +1,52 @@
 <script lang="ts">
-  import { getImageSize, isRecommendedSize, formatImageSize, type ImageSize } from '../utils/imageUtils';
-  import { t } from '../stores/i18n';
+import { t } from '../stores/i18n';
+import {
+  formatImageSize,
+  getImageSize,
+  type ImageSize,
+  isRecommendedSize,
+} from '../utils/imageUtils';
 
-  interface Props {
-    url: string;
-    onSizeLoaded?: (size: ImageSize | null) => void;
-    recommendedSize?: ImageSize;
-  }
+interface Props {
+  url: string;
+  onSizeLoaded?: (size: ImageSize | null) => void;
+  recommendedSize?: ImageSize;
+}
 
-  let { url, onSizeLoaded, recommendedSize }: Props = $props();
-  let imageSize: ImageSize | null = $state(null);
-  let loading = $state(false);
-  let error = $state('');
+let { url, onSizeLoaded, recommendedSize }: Props = $props();
+let imageSize: ImageSize | null = $state(null);
+let loading = $state(false);
+let error = $state('');
 
-  $effect(() => {
-    if (url) {
-      loadImage();
-    } else {
-      imageSize = null;
-      error = '';
-    }
-  });
-
-  $effect(() => {
-    if (onSizeLoaded) {
-      onSizeLoaded(imageSize);
-    }
-  });
-
-  async function loadImage() {
-    loading = true;
-    error = '';
+$effect(() => {
+  if (url) {
+    loadImage();
+  } else {
     imageSize = null;
-
-    try {
-      const size = await getImageSize(url);
-      imageSize = size;
-    } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to load image';
-    } finally {
-      loading = false;
-    }
+    error = '';
   }
+});
+
+$effect(() => {
+  if (onSizeLoaded) {
+    onSizeLoaded(imageSize);
+  }
+});
+
+async function loadImage() {
+  loading = true;
+  error = '';
+  imageSize = null;
+
+  try {
+    const size = await getImageSize(url);
+    imageSize = size;
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Failed to load image';
+  } finally {
+    loading = false;
+  }
+}
 </script>
 
 {#if url}

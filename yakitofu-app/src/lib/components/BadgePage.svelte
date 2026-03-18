@@ -1,15 +1,15 @@
 <script lang="ts">
-import { resolveBadgeDefinition } from '../services/badgeDefinitionResolver';
+import type { Subscription } from 'rxjs';
 import { resolveBadgeAwardees } from '../services/badgeAwardeeResolver';
+import { resolveBadgeDefinition } from '../services/badgeDefinitionResolver';
 import { resolveProfiles } from '../services/profileResolver';
-import ProfileAvatar from './ProfileAvatar.svelte';
-import ProgressiveImage from './ProgressiveImage.svelte';
-import ImageModal from './ImageModal.svelte';
 import { languageStore, t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
-import type { Subscription } from 'rxjs';
+import ImageModal from './ImageModal.svelte';
+import ProfileAvatar from './ProfileAvatar.svelte';
+import ProgressiveImage from './ProgressiveImage.svelte';
 
 let { pubkey, dTag }: { pubkey: string; dTag: string } = $props();
 
@@ -43,7 +43,7 @@ function closeImageModal() {
 let sortedAwardees = $derived([...awardees].sort((a, b) => b.createdAt - a.createdAt));
 
 let shareUrl = $derived(
-  `${window.location.origin}${window.location.pathname}#/badge/${hexToNpub(pubkey)}:${encodeURIComponent(dTag)}`,
+  `${window.location.origin}/badge/${hexToNpub(pubkey)}:${encodeURIComponent(dTag)}`
 );
 
 function fetchProfiles(pubkeys: string[]) {
@@ -59,7 +59,7 @@ function fetchProfiles(pubkeys: string[]) {
         changed = true;
       }
     }
-    
+
     // Only update awardees if profiles actually changed
     if (changed) {
       const updated = awardees.map((a) => ({ ...a, profile: profileCache.get(a.pubkey) ?? null }));
@@ -219,7 +219,7 @@ function getInitial(entry: AwardeeEntry): string {
         </div>
         <div class="flex gap-2 flex-wrap items-baseline">
           <span class="font-medium text-gray-700">{$t('badgeCreator')}:</span>
-          <a href="#/user/{hexToNpub(pubkey)}" class="font-mono text-xs break-all text-orange-500 hover:text-orange-600 transition-colors">{shortNpub(hexToNpub(pubkey))}</a>
+          <a href="/user/{hexToNpub(pubkey)}" class="font-mono text-xs break-all text-orange-500 hover:text-orange-600 transition-colors">{shortNpub(hexToNpub(pubkey))}</a>
         </div>
       </div>
 
@@ -269,7 +269,7 @@ function getInitial(entry: AwardeeEntry): string {
             <li class="py-4 flex items-center gap-4">
               <!-- Avatar -->
               {#if entry.profile?.picture}
-                <a href="#/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
+                <a href="/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
                   <ProfileAvatar
                     src={entry.profile.picture}
                     alt={getDisplayName(entry)}
@@ -277,7 +277,7 @@ function getInitial(entry: AwardeeEntry): string {
                   />
                 </a>
               {:else}
-                <a href="#/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
+                <a href="/user/{hexToNpub(entry.pubkey)}" class="shrink-0 hover:opacity-80 transition-opacity">
                   <div
                     class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold"
                   >
@@ -287,7 +287,7 @@ function getInitial(entry: AwardeeEntry): string {
               {/if}
 
               <!-- User info -->
-              <a href="#/user/{hexToNpub(entry.pubkey)}" class="flex-1 min-w-0 hover:opacity-80 transition-opacity">
+              <a href="/user/{hexToNpub(entry.pubkey)}" class="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 <p class="font-medium text-gray-900 truncate">{getDisplayName(entry)}</p>
                 <p class="text-xs text-gray-400 font-mono truncate">{shortNpub(hexToNpub(entry.pubkey))}</p>
               </a>

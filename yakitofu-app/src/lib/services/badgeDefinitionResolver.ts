@@ -1,12 +1,12 @@
-import { Observable, BehaviorSubject, from, EMPTY, defer } from 'rxjs';
+import { BehaviorSubject, defer, EMPTY, from, Observable } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
+import { type BadgeDefinition, parseBadgeEvent } from '../utils/badgeEventParser';
 import {
   getCachedBadgeDefinition,
   getCachedBadgeDefinitionsByPubkey,
   setCachedBadgeDefinition,
 } from './indexedDbCache';
 import { getBadgeDefinition, getUserBadgeDefinitions, waitForConnection } from './nostr';
-import { parseBadgeEvent, type BadgeDefinition } from '../utils/badgeEventParser';
 
 export interface BadgeDefinitionWithPubkey extends BadgeDefinition {
   pubkey: string;
@@ -23,7 +23,7 @@ function cacheKey(pubkey: string, dTag: string): string {
 
 function isNewer(
   incoming: BadgeDefinitionWithPubkey,
-  existing: BadgeDefinitionWithPubkey | undefined,
+  existing: BadgeDefinitionWithPubkey | undefined
 ): boolean {
   return !existing || !existing.createdAt || incoming.createdAt >= existing.createdAt;
 }
@@ -50,7 +50,7 @@ function upsertCache(badge: BadgeDefinitionWithPubkey): boolean {
  */
 export function resolveBadgeDefinition(
   pubkey: string,
-  dTag: string,
+  dTag: string
 ): Observable<BadgeDefinitionWithPubkey | null> {
   return defer(() => {
     const subject = new BehaviorSubject<BadgeDefinitionWithPubkey | null>(null);
@@ -63,9 +63,7 @@ export function resolveBadgeDefinition(
     }
 
     // 2. IndexedDB -> 3. Relay
-    const pipeline = from(
-      getCachedBadgeDefinition(pubkey, dTag).catch(() => null),
-    ).pipe(
+    const pipeline = from(getCachedBadgeDefinition(pubkey, dTag).catch(() => null)).pipe(
       tap((idbCached) => {
         if (idbCached) {
           const badge: BadgeDefinitionWithPubkey = { ...idbCached, pubkey };
@@ -102,7 +100,7 @@ export function resolveBadgeDefinition(
 
           return () => subscription.unsubscribe();
         });
-      }),
+      })
     );
 
     const pipelineSub = pipeline.subscribe({
@@ -110,9 +108,7 @@ export function resolveBadgeDefinition(
       complete: () => subject.complete(),
     });
 
-    return subject.asObservable().pipe(
-      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
-    );
+    return subject.asObservable().pipe(tap({ unsubscribe: () => pipelineSub.unsubscribe() }));
   });
 }
 
@@ -121,7 +117,7 @@ export function resolveBadgeDefinition(
  * Returns an Observable that emits an updated Map<dTag, BadgeDefinitionWithPubkey>.
  */
 export function resolveBadgeDefinitionsByPubkey(
-  pubkey: string,
+  pubkey: string
 ): Observable<Map<string, BadgeDefinitionWithPubkey>> {
   return defer(() => {
     const result = new Map<string, BadgeDefinitionWithPubkey>();
@@ -151,7 +147,7 @@ export function resolveBadgeDefinitionsByPubkey(
 
     // 2. IndexedDB -> 3. Relay
     const pipeline = from(
-      getCachedBadgeDefinitionsByPubkey(pubkey).catch(() => new Map<string, BadgeDefinition>()),
+      getCachedBadgeDefinitionsByPubkey(pubkey).catch(() => new Map<string, BadgeDefinition>())
     ).pipe(
       tap((idbCached) => {
         let changed = false;
@@ -186,16 +182,14 @@ export function resolveBadgeDefinitionsByPubkey(
 
           return () => subscription.unsubscribe();
         });
-      }),
+      })
     );
 
     const pipelineSub = pipeline.subscribe({
       error: (err) => subject.error(err),
     });
 
-    return subject.asObservable().pipe(
-      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
-    );
+    return subject.asObservable().pipe(tap({ unsubscribe: () => pipelineSub.unsubscribe() }));
   });
 }
 
@@ -204,7 +198,7 @@ export function resolveBadgeDefinitionsByPubkey(
  */
 export function getCachedBadgeSync(
   pubkey: string,
-  dTag: string,
+  dTag: string
 ): BadgeDefinitionWithPubkey | undefined {
   return badgeCache.get(cacheKey(pubkey, dTag));
 }

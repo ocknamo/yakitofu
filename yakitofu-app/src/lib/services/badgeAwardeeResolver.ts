@@ -1,9 +1,6 @@
-import { Observable, BehaviorSubject, from, EMPTY, defer } from 'rxjs';
+import { BehaviorSubject, defer, EMPTY, from, Observable } from 'rxjs';
 import { switchMap, tap } from 'rxjs/operators';
-import {
-  getCachedBadgeAwardees,
-  setCachedBadgeAwardees,
-} from './indexedDbCache';
+import { getCachedBadgeAwardees, setCachedBadgeAwardees } from './indexedDbCache';
 import { getBadgeAwardees, waitForConnection } from './nostr';
 
 /** Module-level in-memory cache keyed by "issuerPubkey:dTag". */
@@ -15,7 +12,7 @@ function cacheKey(issuerPubkey: string, dTag: string): string {
 
 function isNewer(
   incoming: Map<string, number>,
-  existing: Map<string, number> | undefined,
+  existing: Map<string, number> | undefined
 ): boolean {
   if (!existing || existing.size === 0) return true;
 
@@ -32,7 +29,7 @@ function isNewer(
 
 function mergeAwardees(
   existing: Map<string, number>,
-  incoming: Map<string, number>,
+  incoming: Map<string, number>
 ): Map<string, number> {
   const merged = new Map<string, number>(existing);
 
@@ -54,7 +51,7 @@ function mergeAwardees(
  */
 export function resolveBadgeAwardees(
   issuerPubkey: string,
-  dTag: string,
+  dTag: string
 ): Observable<Map<string, number>> {
   return defer(() => {
     const subject = new BehaviorSubject<Map<string, number>>(new Map());
@@ -67,9 +64,7 @@ export function resolveBadgeAwardees(
     }
 
     // 2. IndexedDB cache -> 3. Relay
-    const pipeline = from(
-      getCachedBadgeAwardees(issuerPubkey, dTag).catch(() => null),
-    ).pipe(
+    const pipeline = from(getCachedBadgeAwardees(issuerPubkey, dTag).catch(() => null)).pipe(
       tap((idbCached) => {
         if (idbCached && idbCached.size > 0) {
           // Check if IndexedDB data is newer than in-memory cache
@@ -115,9 +110,7 @@ export function resolveBadgeAwardees(
                 awardeeCache.set(key, merged);
 
                 // Persist to IndexedDB
-                setCachedBadgeAwardees(issuerPubkey, dTag, merged).catch(
-                  console.error,
-                );
+                setCachedBadgeAwardees(issuerPubkey, dTag, merged).catch(console.error);
 
                 // Emit updated map
                 subject.next(new Map(merged));
@@ -133,16 +126,14 @@ export function resolveBadgeAwardees(
 
           return () => subscription.unsubscribe();
         });
-      }),
+      })
     );
 
     const pipelineSub = pipeline.subscribe({
       error: (err) => subject.error(err),
     });
 
-    return subject.asObservable().pipe(
-      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
-    );
+    return subject.asObservable().pipe(tap({ unsubscribe: () => pipelineSub.unsubscribe() }));
   });
 }
 
@@ -152,7 +143,7 @@ export function resolveBadgeAwardees(
  */
 export function getCachedBadgeAwardeesSync(
   issuerPubkey: string,
-  dTag: string,
+  dTag: string
 ): Map<string, number> | undefined {
   return awardeeCache.get(cacheKey(issuerPubkey, dTag));
 }
@@ -164,7 +155,7 @@ export function getCachedBadgeAwardeesSync(
 export function cacheBadgeAwardees(
   issuerPubkey: string,
   dTag: string,
-  awardees: Map<string, number>,
+  awardees: Map<string, number>
 ): void {
   const key = cacheKey(issuerPubkey, dTag);
   const currentCache = awardeeCache.get(key) ?? new Map();

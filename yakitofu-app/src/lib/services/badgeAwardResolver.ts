@@ -1,13 +1,10 @@
-import { Observable, BehaviorSubject, from, defer } from 'rxjs';
-import { tap, switchMap, distinctUntilChanged } from 'rxjs/operators';
 import type { Subscription } from 'rxjs';
-import {
-  getCachedReceivedBadgeAwards,
-  setCachedReceivedBadgeAwards,
-} from './indexedDbCache';
-import { getUserReceivedBadgeAwards, getBadgeDefinition, waitForConnection } from './nostr';
+import { BehaviorSubject, defer, from, Observable } from 'rxjs';
+import { distinctUntilChanged, switchMap, tap } from 'rxjs/operators';
 import { parseBadgeEvent } from '../utils/badgeEventParser';
 import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
+import { getCachedReceivedBadgeAwards, setCachedReceivedBadgeAwards } from './indexedDbCache';
+import { getBadgeDefinition, getUserReceivedBadgeAwards, waitForConnection } from './nostr';
 
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 const EMPTY_TTL_MS = 30 * 1000; // 30 seconds (for empty results to avoid caching relay failures)
@@ -28,7 +25,7 @@ function isFresh(entry: CachedEntry): boolean {
 /** 既存キャッシュと新規取得バッジをマージ（同一 pubkey:dTag は新しい createdAt を優先）*/
 function mergeBadges(
   existing: BadgeDefinitionWithPubkey[],
-  incoming: BadgeDefinitionWithPubkey[],
+  incoming: BadgeDefinitionWithPubkey[]
 ): BadgeDefinitionWithPubkey[] {
   const map = new Map<string, BadgeDefinitionWithPubkey>();
   for (const badge of existing) {
@@ -52,7 +49,7 @@ function mergeBadges(
  * Returns Observable<BadgeDefinitionWithPubkey[]> that emits once and completes.
  */
 export function resolveReceivedBadges(
-  recipientPubkey: string,
+  recipientPubkey: string
 ): Observable<BadgeDefinitionWithPubkey[]> {
   return defer(() => {
     const subject = new BehaviorSubject<BadgeDefinitionWithPubkey[]>([]);
@@ -67,9 +64,7 @@ export function resolveReceivedBadges(
     }
 
     // 2. IndexedDB -> 3. Relay
-    const pipeline$ = from(
-      getCachedReceivedBadgeAwards(recipientPubkey).catch(() => null),
-    ).pipe(
+    const pipeline$ = from(getCachedReceivedBadgeAwards(recipientPubkey).catch(() => null)).pipe(
       tap((idbCached) => {
         if (!idbCached) return;
         if (!memCached || idbCached.cachedAt > memCached.cachedAt) {
@@ -83,8 +78,11 @@ export function resolveReceivedBadges(
         }
 
         // 3. Relay: kind 8 を EOSE まで収集してからバッジ定義を並列取得
-        const { observable: awardsObs, req: awardsReq, filters: awardsFilters } =
-          getUserReceivedBadgeAwards(recipientPubkey);
+        const {
+          observable: awardsObs,
+          req: awardsReq,
+          filters: awardsFilters,
+        } = getUserReceivedBadgeAwards(recipientPubkey);
 
         return new Observable<void>((subscriber) => {
           const awardEntries: Array<{ issuerPubkey: string; dTag: string }> = [];
@@ -108,39 +106,52 @@ export function resolveReceivedBadges(
             const fetched: BadgeDefinitionWithPubkey[] = [];
 
             for (const { issuerPubkey, dTag } of awardEntries) {
-              const { observable: defObs, req: defReq, filters: defFilters } =
-                getBadgeDefinition(issuerPubkey, dTag);
+              const {
+                observable: defObs,
+                req: defReq,
+                filters: defFilters,
+              } = getBadgeDefinition(issuerPubkey, dTag);
               let found = false;
 
               // ✅ subscribe-first: リレーからのイベントを取りこぼさないよう先にサブスクライブ
               let defTimeoutId: ReturnType<typeof setTimeout>;
-              const defSub = defObs.pipe(
-                distinctUntilChanged((a, b) => a.event.id === b.event.id),
-              ).subscribe({
-                next: (packet) => {
-                  if (found) return;
-                  const event = packet.event;
-                  if (event.pubkey !== issuerPubkey) return;
-                  const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
-                  if (eventDTag !== dTag) return;
-                  fetched.push({ ...parseBadgeEvent(event), pubkey: issuerPubkey });
-                  found = true;
-                },
-                error: (err) => {
-                  clearTimeout(defTimeoutId);
-                  console.error('[BadgeAwardResolver] badge definition fetch error', issuerPubkey, dTag, err);
-                  remaining--;
-                  if (remaining === 0) finalize(fetched);
-                },
-                complete: () => {
-                  clearTimeout(defTimeoutId);
-                  if (!found) {
-                    console.warn('[BadgeAwardResolver] badge definition not found on relay: issuerPubkey =', issuerPubkey, 'dTag =', dTag);
-                  }
-                  remaining--;
-                  if (remaining === 0) finalize(fetched);
-                },
-              });
+              const defSub = defObs
+                .pipe(distinctUntilChanged((a, b) => a.event.id === b.event.id))
+                .subscribe({
+                  next: (packet) => {
+                    if (found) return;
+                    const event = packet.event;
+                    if (event.pubkey !== issuerPubkey) return;
+                    const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
+                    if (eventDTag !== dTag) return;
+                    fetched.push({ ...parseBadgeEvent(event), pubkey: issuerPubkey });
+                    found = true;
+                  },
+                  error: (err) => {
+                    clearTimeout(defTimeoutId);
+                    console.error(
+                      '[BadgeAwardResolver] badge definition fetch error',
+                      issuerPubkey,
+                      dTag,
+                      err
+                    );
+                    remaining--;
+                    if (remaining === 0) finalize(fetched);
+                  },
+                  complete: () => {
+                    clearTimeout(defTimeoutId);
+                    if (!found) {
+                      console.warn(
+                        '[BadgeAwardResolver] badge definition not found on relay: issuerPubkey =',
+                        issuerPubkey,
+                        'dTag =',
+                        dTag
+                      );
+                    }
+                    remaining--;
+                    if (remaining === 0) finalize(fetched);
+                  },
+                });
               defSubs.push(defSub);
 
               // ✅ emit 後にタイムアウトを開始（subscribe-before-emit パターン）
@@ -150,7 +161,12 @@ export function resolveReceivedBadges(
                 defReq.over(); // EOSE 後に observable が complete できるよう単発化する
                 defTimeoutId = setTimeout(() => {
                   if (!defSub.closed) {
-                    console.warn('[BadgeAwardResolver] badge definition timeout (5s): issuerPubkey =', issuerPubkey, 'dTag =', dTag);
+                    console.warn(
+                      '[BadgeAwardResolver] badge definition timeout (5s): issuerPubkey =',
+                      issuerPubkey,
+                      'dTag =',
+                      dTag
+                    );
                     defSub.unsubscribe();
                     remaining--;
                     if (remaining === 0) finalize(fetched);
@@ -164,27 +180,29 @@ export function resolveReceivedBadges(
           // ✅ subscribe-first: リレーからのイベントを取りこぼさないよう先にサブスクライブ
           // awardKeys で O(1) 重複チェック
           const awardKeys = new Set<string>();
-          const awardsSub = awardsObs.pipe(
-            distinctUntilChanged((a, b) => a.event.id === b.event.id), // 同一イベントの重複受信を防止
-          ).subscribe({
-            next: (packet) => {
-              for (const tag of packet.event.tags) {
-                if (tag[0] !== 'a') continue;
-                const parts = (tag[1] ?? '').split(':');
-                if (parts.length < 3 || parts[0] !== '30009') continue;
+          const awardsSub = awardsObs
+            .pipe(
+              distinctUntilChanged((a, b) => a.event.id === b.event.id) // 同一イベントの重複受信を防止
+            )
+            .subscribe({
+              next: (packet) => {
+                for (const tag of packet.event.tags) {
+                  if (tag[0] !== 'a') continue;
+                  const parts = (tag[1] ?? '').split(':');
+                  if (parts.length < 3 || parts[0] !== '30009') continue;
 
-                const issuerPubkey = parts[1];
-                const dTag = parts.slice(2).join(':');
-                const key = `${issuerPubkey}:${dTag}`;
-                if (!awardKeys.has(key)) {
-                  awardKeys.add(key);
-                  awardEntries.push({ issuerPubkey, dTag });
+                  const issuerPubkey = parts[1];
+                  const dTag = parts.slice(2).join(':');
+                  const key = `${issuerPubkey}:${dTag}`;
+                  if (!awardKeys.has(key)) {
+                    awardKeys.add(key);
+                    awardEntries.push({ issuerPubkey, dTag });
+                  }
                 }
-              }
-            },
-            error: (err) => subscriber.error(err),
-            complete: () => onAwardsComplete(),
-          });
+              },
+              error: (err) => subscriber.error(err),
+              complete: () => onAwardsComplete(),
+            });
 
           // ✅ emit 後にタイムアウトを開始（subscribe-before-emit パターン）
           waitForConnection().then(() => {
@@ -220,7 +238,7 @@ export function resolveReceivedBadges(
             for (const sub of defSubs) sub.unsubscribe();
           };
         });
-      }),
+      })
     );
 
     const pipelineSub = pipeline$.subscribe({
@@ -228,8 +246,6 @@ export function resolveReceivedBadges(
       complete: () => subject.complete(),
     });
 
-    return subject.asObservable().pipe(
-      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
-    );
+    return subject.asObservable().pipe(tap({ unsubscribe: () => pipelineSub.unsubscribe() }));
   });
 }

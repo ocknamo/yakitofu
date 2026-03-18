@@ -1,194 +1,194 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
-  import { authStore } from '../stores/auth';
-  import { t } from '../stores/i18n';
-  import { isValidBadgeId, isValidUrl } from '../utils/validation';
-  import { publishEvent } from '../services/nostr';
-  import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
-  import { type ImageSize } from '../utils/imageUtils';
-  import type { BadgeDefinition } from '../utils/badgeEventParser';
-  import { buildBadgeTags } from '../utils/badgeTagBuilder';
-  import ImagePreview from './ImagePreview.svelte';
-  import type { NostrEvent } from '../../types/nostr';
-  import type { Subscription } from 'rxjs';
+import type { Subscription } from 'rxjs';
+import { onDestroy } from 'svelte';
+import type { NostrEvent } from '../../types/nostr';
+import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
+import { publishEvent } from '../services/nostr';
+import { authStore } from '../stores/auth';
+import { t } from '../stores/i18n';
+import type { BadgeDefinition } from '../utils/badgeEventParser';
+import { buildBadgeTags } from '../utils/badgeTagBuilder';
+import type { ImageSize } from '../utils/imageUtils';
+import { isValidBadgeId, isValidUrl } from '../utils/validation';
+import ImagePreview from './ImagePreview.svelte';
 
-  let editMode = $state(false);
-  let badges: BadgeDefinition[] = $state([]);
-  let selectedBadgeForEdit = $state('');
-  let loadingBadges = $state(false);
-  
-  let badgeId = $state('');
-  let badgeName = $state('');
-  let description = $state('');
-  let imageUrl = $state('');
-  let thumbnailXlUrl = $state('');
-  let thumbnailLUrl = $state('');
-  let thumbnailMUrl = $state('');
-  let thumbnailSUrl = $state('');
-  let thumbnailXsUrl = $state('');
-  let mainImageSize = $state<ImageSize | null>(null);
-  let thumbnailXlSize = $state<ImageSize | null>(null);
-  let thumbnailLSize = $state<ImageSize | null>(null);
-  let thumbnailMSize = $state<ImageSize | null>(null);
-  let thumbnailSSize = $state<ImageSize | null>(null);
-  let thumbnailXsSize = $state<ImageSize | null>(null);
-  let submitting = $state(false);
-  let message = $state('');
-  let messageType: 'success' | 'error' = $state('success');
-  let badgeSubscription: Subscription | null = null;
+let editMode = $state(false);
+let badges: BadgeDefinition[] = $state([]);
+let selectedBadgeForEdit = $state('');
+let loadingBadges = $state(false);
 
-  onDestroy(() => {
-    if (badgeSubscription) {
-      badgeSubscription.unsubscribe();
-    }
+let badgeId = $state('');
+let badgeName = $state('');
+let description = $state('');
+let imageUrl = $state('');
+let thumbnailXlUrl = $state('');
+let thumbnailLUrl = $state('');
+let thumbnailMUrl = $state('');
+let thumbnailSUrl = $state('');
+let thumbnailXsUrl = $state('');
+let mainImageSize = $state<ImageSize | null>(null);
+let thumbnailXlSize = $state<ImageSize | null>(null);
+let thumbnailLSize = $state<ImageSize | null>(null);
+let thumbnailMSize = $state<ImageSize | null>(null);
+let thumbnailSSize = $state<ImageSize | null>(null);
+let thumbnailXsSize = $state<ImageSize | null>(null);
+let submitting = $state(false);
+let message = $state('');
+let messageType: 'success' | 'error' = $state('success');
+let badgeSubscription: Subscription | null = null;
+
+onDestroy(() => {
+  if (badgeSubscription) {
+    badgeSubscription.unsubscribe();
+  }
+});
+
+function loadMyBadges() {
+  if (!$authStore.pubkey) return;
+
+  if (badgeSubscription) {
+    badgeSubscription.unsubscribe();
+  }
+
+  loadingBadges = true;
+  badges = [];
+
+  badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
+    next: (badgeMap) => {
+      badges = [...badgeMap.values()];
+      loadingBadges = false;
+    },
+    error: (error: Error) => {
+      console.error('Error loading badges:', error);
+      loadingBadges = false;
+    },
   });
 
-  function loadMyBadges() {
-    if (!$authStore.pubkey) return;
+  setTimeout(() => {
+    loadingBadges = false;
+  }, 3000);
+}
 
-    if (badgeSubscription) {
-      badgeSubscription.unsubscribe();
+function switchToEditMode() {
+  editMode = true;
+  loadMyBadges();
+}
+
+function switchToCreateMode() {
+  editMode = false;
+  selectedBadgeForEdit = '';
+  resetForm();
+}
+
+function selectBadgeForEdit(dTag: string) {
+  const badge = badges.find((b) => b.dTag === dTag);
+  if (badge) {
+    badgeId = badge.dTag;
+    badgeName = badge.name;
+    description = badge.description;
+    imageUrl = badge.imageUrl;
+    thumbnailXlUrl = badge.thumbnails.xl || '';
+    thumbnailLUrl = badge.thumbnails.l || '';
+    thumbnailMUrl = badge.thumbnails.m || '';
+    thumbnailSUrl = badge.thumbnails.s || '';
+    thumbnailXsUrl = badge.thumbnails.xs || '';
+    selectedBadgeForEdit = dTag;
+  }
+}
+
+function resetForm() {
+  badgeId = '';
+  badgeName = '';
+  description = '';
+  imageUrl = '';
+  thumbnailXlUrl = '';
+  thumbnailLUrl = '';
+  thumbnailMUrl = '';
+  thumbnailSUrl = '';
+  thumbnailXsUrl = '';
+}
+
+async function handleSubmit(e: Event) {
+  e.preventDefault();
+
+  if (!$authStore.isLoggedIn || !$authStore.pubkey) {
+    message = $t('loginRequired');
+    messageType = 'error';
+    return;
+  }
+
+  if (!isValidBadgeId(badgeId)) {
+    message = $t('invalidBadgeId');
+    messageType = 'error';
+    return;
+  }
+
+  if (!isValidUrl(imageUrl)) {
+    message = 'Invalid image URL';
+    messageType = 'error';
+    return;
+  }
+
+  // Validate all thumbnail URLs
+  const thumbnailUrls = [
+    { url: thumbnailXlUrl, name: 'XL' },
+    { url: thumbnailLUrl, name: 'L' },
+    { url: thumbnailMUrl, name: 'M' },
+    { url: thumbnailSUrl, name: 'S' },
+    { url: thumbnailXsUrl, name: 'XS' },
+  ];
+
+  for (const thumb of thumbnailUrls) {
+    if (thumb.url && !isValidUrl(thumb.url)) {
+      message = `Invalid ${thumb.name} thumbnail URL`;
+      messageType = 'error';
+      return;
     }
+  }
 
-    loadingBadges = true;
-    badges = [];
+  submitting = true;
+  message = '';
 
-    badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
-      next: (badgeMap) => {
-        badges = [...badgeMap.values()];
-        loadingBadges = false;
-      },
-      error: (error: Error) => {
-        console.error('Error loading badges:', error);
-        loadingBadges = false;
-      },
+  try {
+    const tags = buildBadgeTags({
+      badgeId,
+      badgeName,
+      description,
+      imageUrl,
+      mainImageSize,
+      thumbnails: [
+        { url: thumbnailXlUrl, size: thumbnailXlSize, defaultSize: '512x512' },
+        { url: thumbnailLUrl, size: thumbnailLSize, defaultSize: '256x256' },
+        { url: thumbnailMUrl, size: thumbnailMSize, defaultSize: '64x64' },
+        { url: thumbnailSUrl, size: thumbnailSSize, defaultSize: '32x32' },
+        { url: thumbnailXsUrl, size: thumbnailXsSize, defaultSize: '16x16' },
+      ],
     });
 
-    setTimeout(() => {
-      loadingBadges = false;
-    }, 3000);
-  }
+    const event: NostrEvent = {
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 30009,
+      tags,
+      content: '',
+    };
 
-  function switchToEditMode() {
-    editMode = true;
-    loadMyBadges();
-  }
+    const signedEvent = await window.nostr!.signEvent(event);
+    await publishEvent(signedEvent);
 
-  function switchToCreateMode() {
-    editMode = false;
-    selectedBadgeForEdit = '';
+    message = editMode ? 'Badge updated successfully!' : $t('badgeCreated');
+    messageType = 'success';
+
     resetForm();
+    if (editMode) {
+      setTimeout(() => loadMyBadges(), 1000);
+    }
+  } catch (error) {
+    message = error instanceof Error ? error.message : 'Failed to create/update badge';
+    messageType = 'error';
+  } finally {
+    submitting = false;
   }
-
-  function selectBadgeForEdit(dTag: string) {
-    const badge = badges.find(b => b.dTag === dTag);
-    if (badge) {
-      badgeId = badge.dTag;
-      badgeName = badge.name;
-      description = badge.description;
-      imageUrl = badge.imageUrl;
-      thumbnailXlUrl = badge.thumbnails.xl || '';
-      thumbnailLUrl = badge.thumbnails.l || '';
-      thumbnailMUrl = badge.thumbnails.m || '';
-      thumbnailSUrl = badge.thumbnails.s || '';
-      thumbnailXsUrl = badge.thumbnails.xs || '';
-      selectedBadgeForEdit = dTag;
-    }
-  }
-
-  function resetForm() {
-    badgeId = '';
-    badgeName = '';
-    description = '';
-    imageUrl = '';
-    thumbnailXlUrl = '';
-    thumbnailLUrl = '';
-    thumbnailMUrl = '';
-    thumbnailSUrl = '';
-    thumbnailXsUrl = '';
-  }
-
-  async function handleSubmit(e: Event) {
-    e.preventDefault();
-    
-    if (!$authStore.isLoggedIn || !$authStore.pubkey) {
-      message = $t('loginRequired');
-      messageType = 'error';
-      return;
-    }
-
-    if (!isValidBadgeId(badgeId)) {
-      message = $t('invalidBadgeId');
-      messageType = 'error';
-      return;
-    }
-
-    if (!isValidUrl(imageUrl)) {
-      message = 'Invalid image URL';
-      messageType = 'error';
-      return;
-    }
-
-    // Validate all thumbnail URLs
-    const thumbnailUrls = [
-      { url: thumbnailXlUrl, name: 'XL' },
-      { url: thumbnailLUrl, name: 'L' },
-      { url: thumbnailMUrl, name: 'M' },
-      { url: thumbnailSUrl, name: 'S' },
-      { url: thumbnailXsUrl, name: 'XS' },
-    ];
-
-    for (const thumb of thumbnailUrls) {
-      if (thumb.url && !isValidUrl(thumb.url)) {
-        message = `Invalid ${thumb.name} thumbnail URL`;
-        messageType = 'error';
-        return;
-      }
-    }
-
-    submitting = true;
-    message = '';
-
-    try {
-      const tags = buildBadgeTags({
-        badgeId,
-        badgeName,
-        description,
-        imageUrl,
-        mainImageSize,
-        thumbnails: [
-          { url: thumbnailXlUrl, size: thumbnailXlSize, defaultSize: '512x512' },
-          { url: thumbnailLUrl, size: thumbnailLSize, defaultSize: '256x256' },
-          { url: thumbnailMUrl, size: thumbnailMSize, defaultSize: '64x64' },
-          { url: thumbnailSUrl, size: thumbnailSSize, defaultSize: '32x32' },
-          { url: thumbnailXsUrl, size: thumbnailXsSize, defaultSize: '16x16' },
-        ],
-      });
-
-      const event: NostrEvent = {
-        created_at: Math.floor(Date.now() / 1000),
-        kind: 30009,
-        tags,
-        content: '',
-      };
-
-      const signedEvent = await window.nostr!.signEvent(event);
-      await publishEvent(signedEvent);
-
-      message = editMode ? 'Badge updated successfully!' : $t('badgeCreated');
-      messageType = 'success';
-
-      resetForm();
-      if (editMode) {
-        setTimeout(() => loadMyBadges(), 1000);
-      }
-    } catch (error) {
-      message = error instanceof Error ? error.message : 'Failed to create/update badge';
-      messageType = 'error';
-    } finally {
-      submitting = false;
-    }
-  }
+}
 </script>
 
 <div class="max-w-2xl">
