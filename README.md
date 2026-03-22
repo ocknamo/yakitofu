@@ -9,6 +9,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 - **NIP-07認証**: ブラウザ拡張機能による安全なログイン
 - **バッジ定義作成**: カスタムバッジの作成と管理（kind 30009）
 - **バッジ付与**: npub形式でユーザーにバッジを授与（kind 8）
+- **OGP対応**: バッジ・ユーザーページごとにSSRでOGPメタタグを動的生成
 - **リレー管理**: カスタムリレーサーバーの追加・削除
 - **多言語対応**: 日本語・英語の切り替え
 - **画像プレビュー**: バッジ画像の検証とプレビュー（推奨1024x1024px）
@@ -53,42 +54,51 @@ yakitofu/
 │   └── rx-nostr/               # rx-nostrライブラリのドキュメント
 │
 ├── .github/                     # GitHub設定
-│   ├── workflows/              # GitHub Actions CI/CD
-│   │   ├── ci.yml             # テスト・ビルド自動化
-│   │   └── deploy.yml         # GitHub Pagesデプロイ
+│   ├── workflows/              # GitHub Actions CI
+│   │   └── ci.yml             # テスト・ビルド自動化
 │   └── README.md               # GitHub Actions説明
 │
 └── yakitofu-app/               # メインアプリケーション
     ├── README.md               # アプリ固有のREADME
     ├── package.json            # 依存関係とスクリプト
+    ├── svelte.config.js        # SvelteKit + adapter-cloudflare設定
     ├── vite.config.ts          # Viteビルド設定
+    ├── wrangler.toml           # Cloudflare設定
     ├── biome.json              # Biomeリント・フォーマット設定
-    ├── src/                    # ソースコード
-    │   ├── lib/
-    │   │   ├── components/     # UIコンポーネント
-    │   │   ├── stores/         # 状態管理（auth, relay, i18n）
-    │   │   ├── services/       # Nostr通信サービス
-    │   │   └── utils/          # ユーティリティ関数
-    │   └── types/              # TypeScript型定義
-    └── public/                 # 静的ファイル
+    └── src/
+        ├── app.html            # SvelteKitテンプレート
+        ├── lib/
+        │   ├── components/     # UIコンポーネント
+        │   ├── server/         # サーバーサイド専用（nostrFetch等）
+        │   ├── stores/         # 状態管理（auth, relay, i18n）
+        │   ├── services/       # Nostr通信サービス（クライアント専用）
+        │   └── utils/          # ユーティリティ関数
+        ├── routes/             # SvelteKitファイルベースルーティング
+        │   ├── +layout.svelte  # 共通レイアウト
+        │   ├── +page.svelte    # ホームページ
+        │   ├── badge/[id]/     # バッジ詳細（SSR OGP）
+        │   ├── user/[npub]/    # ユーザーページ（SSR OGP）
+        │   └── search/[query]/ # 検索結果
+        └── types/              # TypeScript型定義
 ```
 
 ## 技術スタック
 
 ### コア技術
-- **Svelte 5.45.2** - Runes構文（`$state()`, `$derived()`, `$effect()`）
-- **TypeScript 5.9.3** - 型安全な開発
-- **Vite 7.3.1** - 高速ビルドツール
-- **Tailwind CSS 4.1.18** - ユーティリティファーストCSS
+- **SvelteKit 2** + **@sveltejs/adapter-cloudflare** - SSR対応ファイルベースルーティング
+- **Svelte 5** - Runes構文（`$state()`, `$derived()`, `$effect()`）
+- **TypeScript** - 型安全な開発（strictモード）
+- **Vite 7** - 高速ビルドツール
+- **Tailwind CSS 4** - ユーティリティファーストCSS
 
 ### Nostr関連
-- **rx-nostr 3.6.2** - Nostrクライアント・リレー通信
-- **rx-nostr-crypto 3.1.3** - 暗号化・署名処理
+- **rx-nostr** - Nostrクライアント・リレー通信（クライアントサイド）
+- **rx-nostr-crypto** - 暗号化・署名処理
 
 ### 開発ツール
-- **Biome 2.3.14** - リント・フォーマット
-- **Vitest 4.0.18** - テストランナー
-- **svelte-check 4.3.4** - Svelte型チェック
+- **Biome** - リント・フォーマット
+- **Vitest** - テストランナー
+- **svelte-check** - Svelte型チェック
 
 ## ドキュメント
 
@@ -130,7 +140,12 @@ npm run preview
 
 ## デプロイ
 
-GitHub Pagesへのデプロイは、`main`ブランチへのプッシュ時に自動的に実行されます。
+Cloudflare Pages + Workersへのデプロイは、GitHubリポジトリとCloudflare Pagesを連携することで`main`ブランチへのプッシュ時に自動的に実行されます。
+
+**Cloudflare Pagesビルド設定:**
+- Root directory: `yakitofu-app`
+- Build command: `npm run build`
+- Build output directory: `.svelte-kit/cloudflare`
 
 詳細は [.github/README.md](./.github/README.md) を参照してください。
 
@@ -175,6 +190,6 @@ MIT License - 詳細は [yakitofu-app/LICENSE](./yakitofu-app/LICENSE) を参照
 
 ---
 
-**最終更新**: 2026/02/12  
-**バージョン**: v0.0.0  
+**最終更新**: 2026/03/22
+**バージョン**: v0.0.0
 **Node.js**: 22+
