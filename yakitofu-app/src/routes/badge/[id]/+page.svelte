@@ -4,16 +4,9 @@ import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-function isGif(url: string | undefined): boolean {
-  if (!url) return false;
-  return url.split('?')[0].toLowerCase().endsWith('.gif');
-}
-
 const ogImage = $derived(
   data.badge
-    ? ([data.badge.thumbnails.xl, data.badge.thumbnails.l, data.badge.imageUrl].find(
-        (url) => url && !isGif(url)
-      ) ?? data.badge.imageUrl)
+    ? (data.badge.thumbnails.xl ?? data.badge.thumbnails.l ?? data.badge.imageUrl)
     : 'https://yakitofu.pages.dev/ogp.png'
 );
 </script>
