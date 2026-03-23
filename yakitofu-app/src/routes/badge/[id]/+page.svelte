@@ -13,7 +13,9 @@ let { data }: { data: PageData } = $props();
     <meta property="og:description" content={data.badge.description || 'NIP-58 Badge on Nostr'} />
     <meta property="og:type" content="article" />
     <meta property="og:image" content={data.badge.imageUrl} />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:width" content="1024" />
+    <meta property="og:image:height" content="1024" />
+    <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={data.badge.name} />
     <meta name="twitter:description" content={data.badge.description || 'NIP-58 Badge on Nostr'} />
     <meta name="twitter:image" content={data.badge.imageUrl} />
