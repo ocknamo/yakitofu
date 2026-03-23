@@ -3,6 +3,17 @@ import BadgePage from '$lib/components/BadgePage.svelte';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
+
+const ogImage = $derived(
+  data.badge
+    ? (data.badge.thumbnails.xl ??
+        data.badge.thumbnails.l ??
+        data.badge.thumbnails.m ??
+        data.badge.thumbnails.s ??
+        data.badge.thumbnails.xs ??
+        data.badge.imageUrl)
+    : 'https://yakitofu.pages.dev/ogp.png'
+);
 </script>
 
 <svelte:head>
@@ -12,24 +23,22 @@ let { data }: { data: PageData } = $props();
     <meta property="og:title" content={data.badge.name} />
     <meta property="og:description" content={data.badge.description || 'NIP-58 Badge on Nostr'} />
     <meta property="og:type" content="article" />
-    <meta property="og:image" content={data.badge.imageUrl} />
-    <meta property="og:image:width" content="1024" />
-    <meta property="og:image:height" content="1024" />
+    <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={data.badge.name} />
     <meta name="twitter:description" content={data.badge.description || 'NIP-58 Badge on Nostr'} />
-    <meta name="twitter:image" content={data.badge.imageUrl} />
+    <meta name="twitter:image" content={ogImage} />
   {:else}
     <title>Yakitofu - NIP-58 Badge App</title>
     <meta name="description" content="Create and award NIP-58 badges on Nostr" />
     <meta property="og:title" content="Yakitofu - NIP-58 Badge App" />
     <meta property="og:description" content="Create and award NIP-58 badges on Nostr" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://yakitofu.pages.dev/ogp.png" />
+    <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Yakitofu - NIP-58 Badge App" />
     <meta name="twitter:description" content="Create and award NIP-58 badges on Nostr" />
-    <meta name="twitter:image" content="https://yakitofu.pages.dev/ogp.png" />
+    <meta name="twitter:image" content={ogImage} />
   {/if}
 </svelte:head>
 
