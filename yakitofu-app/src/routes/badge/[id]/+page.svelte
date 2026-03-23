@@ -6,12 +6,7 @@ let { data }: { data: PageData } = $props();
 
 const ogImage = $derived(
   data.badge
-    ? (data.badge.thumbnails.xl ??
-        data.badge.thumbnails.l ??
-        data.badge.thumbnails.m ??
-        data.badge.thumbnails.s ??
-        data.badge.thumbnails.xs ??
-        data.badge.imageUrl)
+    ? (data.badge.thumbnails.xl ?? data.badge.thumbnails.l ?? data.badge.imageUrl)
     : 'https://yakitofu.pages.dev/ogp.png'
 );
 </script>
