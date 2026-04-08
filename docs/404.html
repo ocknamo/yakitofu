@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Yakitofu — Redirecting…</title>
+    <link rel="canonical" href="https://yakitofu.org/" />
+    <script>
+      (function () {
+        var origin = 'https://yakitofu.org';
+        var prefix = '/yakitofu';
+        var path = window.location.pathname;
+        if (path.indexOf(prefix) === 0) {
+          path = path.slice(prefix.length) || '/';
+        } else {
+          path = '/';
+        }
+        window.location.replace(origin + path + window.location.search + window.location.hash);
+      })();
+    </script>
+    <meta http-equiv="refresh" content="0; url=https://yakitofu.org/" />
+  </head>
+  <body>
+    <p>このページは <a href="https://yakitofu.org/">yakitofu.org</a> に移転しました。</p>
+  </body>
+</html>
