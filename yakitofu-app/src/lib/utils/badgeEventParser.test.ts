@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseBadgeEvent, type BadgeDefinition } from './badgeEventParser';
+import { describe, expect, it } from 'vitest';
+import { type BadgeDefinition, parseBadgeEvent } from './badgeEventParser';
 
 describe('badgeEventParser', () => {
   describe('parseBadgeEvent', () => {
@@ -143,9 +143,7 @@ describe('badgeEventParser', () => {
         kind: 30009,
         pubkey: 'pubkey-123',
         created_at: 1234567890,
-        tags: [
-          ['d', 'test-badge'],
-        ],
+        tags: [['d', 'test-badge']],
         content: '',
         sig: 'sig-123',
       };

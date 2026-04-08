@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isValidBadgeId, isValidUrl, isValidWebSocketUrl, isValidNpub } from './validation';
+import { describe, expect, it } from 'vitest';
+import { isValidBadgeId, isValidNpub, isValidUrl, isValidWebSocketUrl } from './validation';
 
 describe('validation', () => {
   describe('isValidBadgeId', () => {
@@ -100,20 +100,32 @@ describe('validation', () => {
     it('should accept valid npub format', () => {
       // Valid npub format: starts with 'npub1' and has exactly 63 characters
       // Real-world example from NIP-19
-      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6')).toBe(true);
+      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6')).toBe(
+        true
+      );
     });
 
     it('should reject npub with incorrect prefix', () => {
-      expect(isValidNpub('nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(false);
-      expect(isValidNpub('npub2qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(false);
-      expect(isValidNpub('npubqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(false);
+      expect(isValidNpub('nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(
+        false
+      );
+      expect(isValidNpub('npub2qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(
+        false
+      );
+      expect(isValidNpub('npubqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8a7dp')).toBe(
+        false
+      );
     });
 
     it('should reject npub with incorrect length', () => {
       expect(isValidNpub('npub1')).toBe(false);
       expect(isValidNpub('npub1qqq')).toBe(false);
-      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6x')).toBe(false); // 64 chars
-      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w')).toBe(false); // 62 chars
+      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6x')).toBe(
+        false
+      ); // 64 chars
+      expect(isValidNpub('npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w')).toBe(
+        false
+      ); // 62 chars
     });
 
     it('should reject empty or invalid strings', () => {

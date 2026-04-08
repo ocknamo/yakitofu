@@ -1,32 +1,31 @@
 <script lang="ts">
-  import { relayStore } from '../stores/relay';
-  import { t } from '../stores/i18n';
-  import { isValidWebSocketUrl } from '../utils/validation';
+import Delete from '../../assets/delete.svg';
+import { t } from '../stores/i18n';
+import { relayStore } from '../stores/relay';
+import { isValidWebSocketUrl } from '../utils/validation';
 
-  import Delete from '../../assets/delete.svg'; 
+let newRelay = $state('');
+let error = $state('');
 
-  let newRelay = $state('');
-  let error = $state('');
+function handleAddRelay() {
+  error = '';
 
-  function handleAddRelay() {
-    error = '';
-    
-    if (!newRelay) {
-      return;
-    }
-
-    if (!isValidWebSocketUrl(newRelay)) {
-      error = 'Invalid WebSocket URL. Must start with wss:// or ws://';
-      return;
-    }
-
-    relayStore.addRelay(newRelay);
-    newRelay = '';
+  if (!newRelay) {
+    return;
   }
 
-  function handleRemoveRelay(relay: string) {
-    relayStore.removeRelay(relay);
+  if (!isValidWebSocketUrl(newRelay)) {
+    error = 'Invalid WebSocket URL. Must start with wss:// or ws://';
+    return;
   }
+
+  relayStore.addRelay(newRelay);
+  newRelay = '';
+}
+
+function handleRemoveRelay(relay: string) {
+  relayStore.removeRelay(relay);
+}
 </script>
 
 <div class="max-w-2xl">

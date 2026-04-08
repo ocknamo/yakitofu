@@ -1,17 +1,17 @@
 <script lang="ts">
-import { searchBadgesByDTag, waitForConnection } from '../services/nostr';
+import type { Subscription } from 'rxjs';
+import type { NostrEvent } from '../../types/nostr';
 import {
-  cacheBadgeDefinition,
   type BadgeDefinitionWithPubkey,
+  cacheBadgeDefinition,
 } from '../services/badgeDefinitionResolver';
+import { searchBadgesByDTag, waitForConnection } from '../services/nostr';
 import { resolveProfiles } from '../services/profileResolver';
-import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
 import { parseBadgeEvent } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
-import type { NostrEvent } from '../../types/nostr';
-import type { Subscription } from 'rxjs';
+import ProgressiveImage from './ProgressiveImage.svelte';
 
 let { dTag }: { dTag: string } = $props();
 
@@ -111,7 +111,7 @@ function shortNpub(npub: string): string {
         {@const npub = hexToNpub(badge.pubkey)}
         {@const profile = profiles.get(badge.pubkey)}
         <a
-          href="#/badge/{npub}:{encodeURIComponent(badge.dTag)}"
+          href="/badge/{npub}:{encodeURIComponent(badge.dTag)}"
           class="block rounded-lg border border-gray-200 p-3 hover:border-orange-300 hover:shadow-sm transition-all"
         >
           <div class="aspect-square mb-2 rounded-lg overflow-hidden bg-gray-50">

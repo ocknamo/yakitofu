@@ -1,8 +1,8 @@
-import { Observable, BehaviorSubject, from, EMPTY, defer } from 'rxjs';
-import { switchMap, tap, filter } from 'rxjs/operators';
+import { BehaviorSubject, defer, EMPTY, from, Observable } from 'rxjs';
+import { filter, switchMap, tap } from 'rxjs/operators';
+import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
 import { getCachedProfiles, setCachedProfile } from './indexedDbCache';
 import { getUserProfiles, waitForConnection } from './nostr';
-import { parseUserProfile, type UserProfile } from '../utils/userProfileParser';
 
 /** Cache TTL: 24 hours in milliseconds */
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -64,9 +64,7 @@ export function resolveProfiles(pubkeys: string[]): Observable<Map<string, UserP
     }
 
     // 2. IndexedDB cache (async) → 3. Relay (async)
-    const pipeline = from(
-      getCachedProfiles(uncached).catch(() => new Map()),
-    ).pipe(
+    const pipeline = from(getCachedProfiles(uncached).catch(() => new Map())).pipe(
       tap((idbCached) => {
         let changed = false;
         const now = Date.now();
@@ -104,7 +102,7 @@ export function resolveProfiles(pubkeys: string[]): Observable<Map<string, UserP
 
           return () => subscription.unsubscribe();
         });
-      }),
+      })
     );
 
     const pipelineSub = pipeline.subscribe({
@@ -114,7 +112,7 @@ export function resolveProfiles(pubkeys: string[]): Observable<Map<string, UserP
 
     return subject.asObservable().pipe(
       // Cleanup on unsubscribe
-      tap({ unsubscribe: () => pipelineSub.unsubscribe() }),
+      tap({ unsubscribe: () => pipelineSub.unsubscribe() })
     );
   });
 }

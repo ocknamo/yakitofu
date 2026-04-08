@@ -1,13 +1,16 @@
 <script lang="ts">
-import { resolveBadgeDefinitionsByPubkey, type BadgeDefinitionWithPubkey } from '../services/badgeDefinitionResolver';
 import { resolveReceivedBadges } from '../services/badgeAwardResolver';
+import {
+  type BadgeDefinitionWithPubkey,
+  resolveBadgeDefinitionsByPubkey,
+} from '../services/badgeDefinitionResolver';
 import { resolveProfiles } from '../services/profileResolver';
-import ProfileAvatar from './ProfileAvatar.svelte';
-import ProgressiveImage from './ProgressiveImage.svelte';
 import { t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
+import ProfileAvatar from './ProfileAvatar.svelte';
+import ProgressiveImage from './ProgressiveImage.svelte';
 
 let { pubkey }: { pubkey: string } = $props();
 
@@ -60,7 +63,7 @@ $effect(() => {
   const subscription = resolveReceivedBadges(pubkey).subscribe({
     next: (b) => {
       receivedBadges = b;
-      if(b.length > 0) {
+      if (b.length > 0) {
         loadingReceivedBadges = false;
         clearTimeout(timeoutId);
       }
@@ -157,7 +160,7 @@ function shortNpub(n: string): string {
       <div class="flex flex-wrap gap-3">
         {#each receivedBadges as badge (`${badge.pubkey}:${badge.dTag}`)}
           <a
-            href="#/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
+            href="/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
             title={badge.name}
             class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors shrink-0 bg-gray-50"
           >
@@ -196,7 +199,7 @@ function shortNpub(n: string): string {
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {#each badges as badge (badge.dTag)}
           <a
-            href="#/badge/{npub}:{encodeURIComponent(badge.dTag)}"
+            href="/badge/{npub}:{encodeURIComponent(badge.dTag)}"
             class="block rounded-lg border border-gray-200 p-3 hover:border-orange-300 hover:shadow-sm transition-all"
           >
             <div class="aspect-square mb-2 rounded-lg overflow-hidden bg-gray-50">

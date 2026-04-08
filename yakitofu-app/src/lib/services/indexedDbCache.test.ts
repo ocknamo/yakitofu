@@ -13,7 +13,6 @@ async function freshModule(): Promise<CacheModule> {
 }
 
 function resetIndexedDB() {
-  // @ts-ignore
   globalThis.indexedDB = new IDBFactory();
 }
 
@@ -92,11 +91,23 @@ describe('setCachedProfile エビクション', () => {
 
   it('101件目で最古エントリが削除される', async () => {
     for (let i = 0; i < 100; i++) {
-      await mod.setCachedProfile({ pubkey: `pk${i}`, name: `User${i}`, displayName: '', picture: '', createdAt: i });
+      await mod.setCachedProfile({
+        pubkey: `pk${i}`,
+        name: `User${i}`,
+        displayName: '',
+        picture: '',
+        createdAt: i,
+      });
     }
     expect(await mod.getCachedProfile('pk0')).not.toBeNull();
 
-    await mod.setCachedProfile({ pubkey: 'pk100', name: 'User100', displayName: '', picture: '', createdAt: 100 });
+    await mod.setCachedProfile({
+      pubkey: 'pk100',
+      name: 'User100',
+      displayName: '',
+      picture: '',
+      createdAt: 100,
+    });
 
     expect(await mod.getCachedProfile('pk0')).toBeNull();
     expect(await mod.getCachedProfile('pk100')).not.toBeNull();
@@ -112,8 +123,20 @@ describe('getCachedProfiles', () => {
   });
 
   it('複数 pubkey を一括取得し、存在しないものは Map に含まれない', async () => {
-    await mod.setCachedProfile({ pubkey: 'a', name: 'A', displayName: '', picture: '', createdAt: 1000 });
-    await mod.setCachedProfile({ pubkey: 'b', name: 'B', displayName: '', picture: '', createdAt: 1000 });
+    await mod.setCachedProfile({
+      pubkey: 'a',
+      name: 'A',
+      displayName: '',
+      picture: '',
+      createdAt: 1000,
+    });
+    await mod.setCachedProfile({
+      pubkey: 'b',
+      name: 'B',
+      displayName: '',
+      picture: '',
+      createdAt: 1000,
+    });
 
     const result = await mod.getCachedProfiles(['a', 'b', 'c']);
     expect(result.size).toBe(2);

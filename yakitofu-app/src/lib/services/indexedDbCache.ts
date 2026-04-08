@@ -77,10 +77,7 @@ function openCacheDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
-async function evictOldestIfNeeded(
-  tx: IDBTransaction,
-  storeName: string,
-): Promise<void> {
+async function evictOldestIfNeeded(tx: IDBTransaction, storeName: string): Promise<void> {
   const store = tx.objectStore(storeName);
 
   const count = await new Promise<number>((resolve, reject) => {
@@ -156,7 +153,7 @@ export async function setCachedProfile(profile: UserProfile): Promise<void> {
 }
 
 export async function getCachedProfiles(
-  pubkeys: string[],
+  pubkeys: string[]
 ): Promise<Map<string, { profile: UserProfile; cachedAt: number }>> {
   if (pubkeys.length === 0) return new Map();
 
@@ -178,8 +175,8 @@ export async function getCachedProfiles(
             resolve();
           };
           req.onerror = () => reject(req.error);
-        }),
-    ),
+        })
+    )
   );
 
   return result;
@@ -187,7 +184,7 @@ export async function getCachedProfiles(
 
 export async function getCachedBadgeDefinition(
   pubkey: string,
-  dTag: string,
+  dTag: string
 ): Promise<BadgeDefinition | null> {
   const db = await openCacheDB();
   const key = `${pubkey}:${dTag}`;
@@ -209,7 +206,7 @@ export async function getCachedBadgeDefinition(
 }
 
 export async function getCachedBadgeDefinitionsByPubkey(
-  pubkey: string,
+  pubkey: string
 ): Promise<Map<string, BadgeDefinition>> {
   const db = await openCacheDB();
   const result = new Map<string, BadgeDefinition>();
@@ -239,7 +236,7 @@ export async function getCachedBadgeDefinitionsByPubkey(
 
 export async function setCachedBadgeDefinition(
   pubkey: string,
-  badge: BadgeDefinition,
+  badge: BadgeDefinition
 ): Promise<void> {
   const db = await openCacheDB();
   const key = `${pubkey}:${badge.dTag}`;
@@ -272,7 +269,7 @@ export async function setCachedBadgeDefinition(
 
 export async function getCachedBadgeAwardees(
   issuerPubkey: string,
-  dTag: string,
+  dTag: string
 ): Promise<Map<string, number> | null> {
   const db = await openCacheDB();
   const key = `${issuerPubkey}:${dTag}`;
@@ -296,7 +293,7 @@ export async function getCachedBadgeAwardees(
 export async function setCachedBadgeAwardees(
   issuerPubkey: string,
   dTag: string,
-  awardees: Map<string, number>,
+  awardees: Map<string, number>
 ): Promise<void> {
   const db = await openCacheDB();
   const key = `${issuerPubkey}:${dTag}`;
@@ -330,7 +327,7 @@ export async function setCachedBadgeAwardees(
 }
 
 export async function getCachedReceivedBadgeAwards(
-  recipientPubkey: string,
+  recipientPubkey: string
 ): Promise<{ badges: Array<BadgeDefinition & { pubkey: string }>; cachedAt: number } | null> {
   const db = await openCacheDB();
 
@@ -351,7 +348,7 @@ export async function getCachedReceivedBadgeAwards(
 
 export async function setCachedReceivedBadgeAwards(
   recipientPubkey: string,
-  badges: Array<BadgeDefinition & { pubkey: string }>,
+  badges: Array<BadgeDefinition & { pubkey: string }>
 ): Promise<void> {
   const db = await openCacheDB();
 

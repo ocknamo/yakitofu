@@ -1,0 +1,6 @@
+name = "yakitofu"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "yakitofu"

@@ -1,19 +1,19 @@
 <script lang="ts">
-  let {
-    src,
-    alt,
-    class: className = '',
-  }: {
-    src: string;
-    alt: string;
-    class?: string;
-  } = $props();
+let {
+  src,
+  alt,
+  class: className = '',
+}: {
+  src: string;
+  alt: string;
+  class?: string;
+} = $props();
 
-  let loaded = $state(false);
+let loaded = $state(false);
 
-  function onLoad() {
-    loaded = true;
-  }
+function onLoad() {
+  loaded = true;
+}
 </script>
 
 <div class="avatar {className}">

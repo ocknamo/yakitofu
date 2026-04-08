@@ -53,10 +53,10 @@ function bech32Decode(bechString: string): { hrp: string; data: number[] } | nul
   if (pos < 1 || pos + 7 > bechString.length || bechString.length > 90) {
     return null;
   }
-  
+
   const hrp = bechString.substring(0, pos);
   const data: number[] = [];
-  
+
   for (let i = pos + 1; i < bechString.length; i++) {
     const d = BECH32_CHARSET.indexOf(bechString.charAt(i));
     if (d === -1) {
@@ -64,20 +64,25 @@ function bech32Decode(bechString: string): { hrp: string; data: number[] } | nul
     }
     data.push(d);
   }
-  
+
   if (bech32Polymod(bech32HrpExpand(hrp).concat(data)) !== 1) {
     return null;
   }
-  
+
   return { hrp, data: data.slice(0, -6) };
 }
 
-function convertBits(data: number[], fromBits: number, toBits: number, pad: boolean): number[] | null {
+function convertBits(
+  data: number[],
+  fromBits: number,
+  toBits: number,
+  pad: boolean
+): number[] | null {
   let acc = 0;
   let bits = 0;
   const ret: number[] = [];
   const maxv = (1 << toBits) - 1;
-  
+
   for (const value of data) {
     if (value < 0 || value >> fromBits !== 0) {
       return null;
@@ -89,15 +94,15 @@ function convertBits(data: number[], fromBits: number, toBits: number, pad: bool
       ret.push((acc >> bits) & maxv);
     }
   }
-  
+
   if (pad) {
     if (bits > 0) {
       ret.push((acc << (toBits - bits)) & maxv);
     }
-  } else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv)) {
+  } else if (bits >= fromBits || (acc << (toBits - bits)) & maxv) {
     return null;
   }
-  
+
   return ret;
 }
 
@@ -106,13 +111,13 @@ export function npubToHex(npub: string): string {
   if (!decoded || decoded.hrp !== 'npub') {
     throw new Error('Invalid npub format');
   }
-  
+
   const bytes = convertBits(decoded.data, 5, 8, false);
   if (!bytes) {
     throw new Error('Failed to convert npub to hex');
   }
-  
-  return bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function hexToNpub(hex: string): string {
@@ -120,11 +125,11 @@ export function hexToNpub(hex: string): string {
   for (let i = 0; i < hex.length; i += 2) {
     bytes.push(parseInt(hex.substring(i, i + 2), 16));
   }
-  
+
   const data = convertBits(bytes, 8, 5, true);
   if (!data) {
     throw new Error('Failed to convert hex to npub');
   }
-  
+
   return bech32Encode('npub', data);
 }

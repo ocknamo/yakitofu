@@ -1,46 +1,46 @@
 <script lang="ts">
-  import { resolveProfiles } from '../services/profileResolver';
-  import ProfileAvatar from './ProfileAvatar.svelte';
-  import { authStore } from '../stores/auth';
-  import { t } from '../stores/i18n';
-  import { hexToNpub } from '../utils/npubConverter';
-  import type { UserProfile } from '../utils/userProfileParser';
+import { resolveProfiles } from '../services/profileResolver';
+import { authStore } from '../stores/auth';
+import { t } from '../stores/i18n';
+import { hexToNpub } from '../utils/npubConverter';
+import type { UserProfile } from '../utils/userProfileParser';
+import ProfileAvatar from './ProfileAvatar.svelte';
 
-  let loading = $state(false);
-  let error = $state('');
-  let profile: UserProfile | null = $state(null);
+let loading = $state(false);
+let error = $state('');
+let profile: UserProfile | null = $state(null);
 
-  async function handleLogin() {
-    loading = true;
-    error = '';
-    try {
-      await authStore.login();
-    } catch (e) {
-      error = e instanceof Error ? e.message : 'Login failed';
-    } finally {
-      loading = false;
-    }
+async function handleLogin() {
+  loading = true;
+  error = '';
+  try {
+    await authStore.login();
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Login failed';
+  } finally {
+    loading = false;
   }
+}
 
-  function handleLogout() {
-    profile = null;
-    authStore.logout();
-  }
+function handleLogout() {
+  profile = null;
+  authStore.logout();
+}
 
-  let npubKey = $derived($authStore.pubkey ? hexToNpub($authStore.pubkey) : '');
+let npubKey = $derived($authStore.pubkey ? hexToNpub($authStore.pubkey) : '');
 
-  // Fetch profile when logged in
-  $effect(() => {
-    const pubkey = $authStore.pubkey;
-    if (!pubkey) return;
+// Fetch profile when logged in
+$effect(() => {
+  const pubkey = $authStore.pubkey;
+  if (!pubkey) return;
 
-    const subscription = resolveProfiles([pubkey]).subscribe((profiles) => {
-      const p = profiles.get(pubkey);
-      if (p) profile = p;
-    });
-
-    return () => subscription.unsubscribe();
+  const subscription = resolveProfiles([pubkey]).subscribe((profiles) => {
+    const p = profiles.get(pubkey);
+    if (p) profile = p;
   });
+
+  return () => subscription.unsubscribe();
+});
 </script>
 
 {#if !$authStore.hasNostrExtension}
@@ -50,7 +50,7 @@
 {:else if $authStore.isLoggedIn}
   <div class="flex items-center gap-3">
     <!-- Avatar link -->
-    <a href="#/user/{npubKey}" class="shrink-0">
+    <a href="/user/{npubKey}" class="shrink-0">
       {#if profile?.picture}
         <ProfileAvatar
           src={profile.picture}
@@ -68,7 +68,7 @@
 
     <!-- npub (hidden on mobile) -->
     <a
-      href="#/user/{npubKey}"
+      href="/user/{npubKey}"
       class="hidden sm:block text-xs font-mono text-gray-700 hover:text-orange-500 transition-colors truncate max-w-36"
     >
       {npubKey.slice(0, 16)}...{npubKey.slice(-8)}

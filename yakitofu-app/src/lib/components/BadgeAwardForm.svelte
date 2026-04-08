@@ -1,132 +1,132 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
-  import { authStore } from '../stores/auth';
-  import { t } from '../stores/i18n';
-  import { isValidNpub } from '../utils/validation';
-  import { npubToHex } from '../utils/npubConverter';
-  import { publishEvent } from '../services/nostr';
-  import {
-    resolveBadgeDefinitionsByPubkey,
-    type BadgeDefinitionWithPubkey,
-  } from '../services/badgeDefinitionResolver';
-  import type { NostrEvent } from '../../types/nostr';
-  import type { Subscription } from 'rxjs';
+import type { Subscription } from 'rxjs';
+import { onDestroy } from 'svelte';
+import type { NostrEvent } from '../../types/nostr';
+import {
+  type BadgeDefinitionWithPubkey,
+  resolveBadgeDefinitionsByPubkey,
+} from '../services/badgeDefinitionResolver';
+import { publishEvent } from '../services/nostr';
+import { authStore } from '../stores/auth';
+import { t } from '../stores/i18n';
+import { npubToHex } from '../utils/npubConverter';
+import { isValidNpub } from '../utils/validation';
 
-  let badges: BadgeDefinitionWithPubkey[] = $state([]);
-  let selectedBadge = $state('');
-  let recipientNpub = $state('');
-  let submitting = $state(false);
-  let loading = $state(false);
-  let message = $state('');
-  let messageType: 'success' | 'error' = $state('success');
-  let badgeSubscription: Subscription | null = null;
+let badges: BadgeDefinitionWithPubkey[] = $state([]);
+let selectedBadge = $state('');
+let recipientNpub = $state('');
+let submitting = $state(false);
+let loading = $state(false);
+let message = $state('');
+let messageType: 'success' | 'error' = $state('success');
+let badgeSubscription: Subscription | null = null;
 
-  // Get selected badge details
-  let selectedBadgeDetails = $derived(badges.find(b => b.dTag === selectedBadge));
+// Get selected badge details
+let selectedBadgeDetails = $derived(badges.find((b) => b.dTag === selectedBadge));
 
-  // Load user's badges when logged in
-  $effect(() => {
-    if ($authStore.isLoggedIn && $authStore.pubkey) {
-      loadBadges();
-    } else {
-      badges = [];
-      if (badgeSubscription) {
-        badgeSubscription.unsubscribe();
-        badgeSubscription = null;
-      }
-    }
-  });
-
-  // Cleanup on component destroy
-  onDestroy(() => {
-    if (badgeSubscription) {
-      badgeSubscription.unsubscribe();
-    }
-  });
-
-  function loadBadges() {
-    if (!$authStore.pubkey) return;
-
-    if (badgeSubscription) {
-      badgeSubscription.unsubscribe();
-    }
-
-    loading = true;
+// Load user's badges when logged in
+$effect(() => {
+  if ($authStore.isLoggedIn && $authStore.pubkey) {
+    loadBadges();
+  } else {
     badges = [];
+    if (badgeSubscription) {
+      badgeSubscription.unsubscribe();
+      badgeSubscription = null;
+    }
+  }
+});
 
-    badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
-      next: (badgeMap) => {
-        badges = [...badgeMap.values()];
-        loading = false;
-      },
-      error: (error: Error) => {
-        console.error('Error loading badges:', error);
-        loading = false;
-      },
-    });
+// Cleanup on component destroy
+onDestroy(() => {
+  if (badgeSubscription) {
+    badgeSubscription.unsubscribe();
+  }
+});
 
-    setTimeout(() => {
+function loadBadges() {
+  if (!$authStore.pubkey) return;
+
+  if (badgeSubscription) {
+    badgeSubscription.unsubscribe();
+  }
+
+  loading = true;
+  badges = [];
+
+  badgeSubscription = resolveBadgeDefinitionsByPubkey($authStore.pubkey).subscribe({
+    next: (badgeMap) => {
+      badges = [...badgeMap.values()];
       loading = false;
-    }, 3000);
+    },
+    error: (error: Error) => {
+      console.error('Error loading badges:', error);
+      loading = false;
+    },
+  });
+
+  setTimeout(() => {
+    loading = false;
+  }, 3000);
+}
+
+async function handleSubmit(e: Event) {
+  e.preventDefault();
+
+  if (!$authStore.isLoggedIn || !$authStore.pubkey) {
+    message = $t('loginRequired');
+    messageType = 'error';
+    return;
   }
 
-  async function handleSubmit(e: Event) {
-    e.preventDefault();
-
-    if (!$authStore.isLoggedIn || !$authStore.pubkey) {
-      message = $t('loginRequired');
-      messageType = 'error';
-      return;
-    }
-
-    if (!selectedBadge) {
-      message = 'Please select a badge';
-      messageType = 'error';
-      return;
-    }
-
-    if (!isValidNpub(recipientNpub)) {
-      message = 'Invalid npub format';
-      messageType = 'error';
-      return;
-    }
-
-    submitting = true;
-    message = '';
-
-    try {
-      // Convert npub to hex
-      const recipientHex = npubToHex(recipientNpub);
-
-      // Create badge award event (kind 8)
-      const event: NostrEvent = {
-        created_at: Math.floor(Date.now() / 1000),
-        kind: 8,
-        tags: [
-          ['a', `30009:${$authStore.pubkey}:${selectedBadge}`],
-          ['p', recipientHex],
-        ],
-        content: '',
-      };
-
-      // Sign with NIP-07
-      const signedEvent = await window.nostr!.signEvent(event);
-
-      // Publish to relays
-      await publishEvent(signedEvent);
-
-      message = $t('badgeAwarded');
-      messageType = 'success';
-
-      // Reset form
-      recipientNpub = '';
-    } catch (error) {
-      message = error instanceof Error ? error.message : 'Failed to award badge';
-      messageType = 'error';
-    } finally {
-      submitting = false;
-    }
+  if (!selectedBadge) {
+    message = 'Please select a badge';
+    messageType = 'error';
+    return;
   }
+
+  if (!isValidNpub(recipientNpub)) {
+    message = 'Invalid npub format';
+    messageType = 'error';
+    return;
+  }
+
+  submitting = true;
+  message = '';
+
+  try {
+    // Convert npub to hex
+    const recipientHex = npubToHex(recipientNpub);
+
+    // Create badge award event (kind 8)
+    const event: NostrEvent = {
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 8,
+      tags: [
+        ['a', `30009:${$authStore.pubkey}:${selectedBadge}`],
+        ['p', recipientHex],
+      ],
+      content: '',
+    };
+
+    // Sign with NIP-07
+    const signedEvent = await window.nostr!.signEvent(event);
+
+    // Publish to relays
+    await publishEvent(signedEvent);
+
+    message = $t('badgeAwarded');
+    messageType = 'success';
+
+    // Reset form
+    recipientNpub = '';
+  } catch (error) {
+    message = error instanceof Error ? error.message : 'Failed to award badge';
+    messageType = 'error';
+  } finally {
+    submitting = false;
+  }
+}
 </script>
 
 <div class="max-w-2xl">

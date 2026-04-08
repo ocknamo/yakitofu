@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { buildBadgeTags, type BadgeFormData } from './badgeTagBuilder';
+import { describe, expect, it } from 'vitest';
+import { type BadgeFormData, buildBadgeTags } from './badgeTagBuilder';
 
 describe('badgeTagBuilder', () => {
   describe('buildBadgeTags', () => {
@@ -46,11 +46,31 @@ describe('badgeTagBuilder', () => {
         imageUrl: 'https://example.com/badge.png',
         mainImageSize: { width: 1024, height: 1024 },
         thumbnails: [
-          { url: 'https://example.com/thumb-512.png', size: { width: 512, height: 512 }, defaultSize: '512x512' },
-          { url: 'https://example.com/thumb-256.png', size: { width: 256, height: 256 }, defaultSize: '256x256' },
-          { url: 'https://example.com/thumb-64.png', size: { width: 64, height: 64 }, defaultSize: '64x64' },
-          { url: 'https://example.com/thumb-32.png', size: { width: 32, height: 32 }, defaultSize: '32x32' },
-          { url: 'https://example.com/thumb-16.png', size: { width: 16, height: 16 }, defaultSize: '16x16' },
+          {
+            url: 'https://example.com/thumb-512.png',
+            size: { width: 512, height: 512 },
+            defaultSize: '512x512',
+          },
+          {
+            url: 'https://example.com/thumb-256.png',
+            size: { width: 256, height: 256 },
+            defaultSize: '256x256',
+          },
+          {
+            url: 'https://example.com/thumb-64.png',
+            size: { width: 64, height: 64 },
+            defaultSize: '64x64',
+          },
+          {
+            url: 'https://example.com/thumb-32.png',
+            size: { width: 32, height: 32 },
+            defaultSize: '32x32',
+          },
+          {
+            url: 'https://example.com/thumb-16.png',
+            size: { width: 16, height: 16 },
+            defaultSize: '16x16',
+          },
         ],
       };
 
@@ -72,7 +92,11 @@ describe('badgeTagBuilder', () => {
         mainImageSize: null,
         thumbnails: [
           { url: '', size: null, defaultSize: '512x512' },
-          { url: 'https://example.com/thumb-256.png', size: { width: 256, height: 256 }, defaultSize: '256x256' },
+          {
+            url: 'https://example.com/thumb-256.png',
+            size: { width: 256, height: 256 },
+            defaultSize: '256x256',
+          },
           { url: '', size: null, defaultSize: '64x64' },
         ],
       };
@@ -82,7 +106,7 @@ describe('badgeTagBuilder', () => {
       expect(tags).toContainEqual(['thumb', 'https://example.com/thumb-256.png', '256x256']);
       expect(tags).not.toContainEqual(['thumb', '', '512x512']);
       expect(tags).not.toContainEqual(['thumb', '', '64x64']);
-      expect(tags.filter(t => t[0] === 'thumb')).toHaveLength(1);
+      expect(tags.filter((t) => t[0] === 'thumb')).toHaveLength(1);
     });
 
     it('should use default size when thumbnail size is null', () => {
@@ -92,9 +116,7 @@ describe('badgeTagBuilder', () => {
         description: 'Test description',
         imageUrl: 'https://example.com/badge.png',
         mainImageSize: null,
-        thumbnails: [
-          { url: 'https://example.com/thumb.png', size: null, defaultSize: '256x256' },
-        ],
+        thumbnails: [{ url: 'https://example.com/thumb.png', size: null, defaultSize: '256x256' }],
       };
 
       const tags = buildBadgeTags(formData);
@@ -110,7 +132,11 @@ describe('badgeTagBuilder', () => {
         imageUrl: 'https://example.com/badge.png',
         mainImageSize: { width: 1024, height: 1024 },
         thumbnails: [
-          { url: 'https://example.com/thumb-512.png', size: { width: 512, height: 512 }, defaultSize: '512x512' },
+          {
+            url: 'https://example.com/thumb-512.png',
+            size: { width: 512, height: 512 },
+            defaultSize: '512x512',
+          },
           { url: 'https://example.com/thumb-unknown.png', size: null, defaultSize: '256x256' },
           { url: '', size: null, defaultSize: '64x64' },
         ],
@@ -120,7 +146,7 @@ describe('badgeTagBuilder', () => {
 
       expect(tags).toContainEqual(['thumb', 'https://example.com/thumb-512.png', '512x512']);
       expect(tags).toContainEqual(['thumb', 'https://example.com/thumb-unknown.png', '256x256']);
-      expect(tags.filter(t => t[0] === 'thumb')).toHaveLength(2);
+      expect(tags.filter((t) => t[0] === 'thumb')).toHaveLength(2);
     });
   });
 });

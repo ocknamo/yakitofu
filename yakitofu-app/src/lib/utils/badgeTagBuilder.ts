@@ -17,7 +17,7 @@ export interface BadgeFormData {
 
 /**
  * Build Nostr tags array from badge form data.
- * 
+ *
  * @param formData - The form data containing badge information
  * @returns Array of Nostr tags
  */
@@ -26,7 +26,11 @@ export function buildBadgeTags(formData: BadgeFormData): string[][] {
     ['d', formData.badgeId],
     ['name', formData.badgeName],
     ['description', formData.description],
-    ['image', formData.imageUrl, formData.mainImageSize ? formatImageSize(formData.mainImageSize) : '1024x1024'],
+    [
+      'image',
+      formData.imageUrl,
+      formData.mainImageSize ? formatImageSize(formData.mainImageSize) : '1024x1024',
+    ],
   ];
 
   // Add thumbnail tags for each size

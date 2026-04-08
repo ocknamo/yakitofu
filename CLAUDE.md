@@ -14,10 +14,10 @@ Yakitofu は NIP-58 準拠の Nostr バッジ作成・付与 Web アプリケー
 cd yakitofu-app
 
 npm run dev          # 開発サーバー起動
-npm run build        # 本番ビルド（dist/ に出力）
+npm run build        # 本番ビルド（.svelte-kit/cloudflare/ に出力）
 npm run preview      # 本番ビルドのローカルプレビュー
 
-npm run check        # TypeScript + svelte-check による型チェック
+npm run check        # svelte-kit sync + TypeScript + svelte-check による型チェック
 npm run lint         # Biome によるリントチェック
 npm run lint:fix     # Biome による自動修正付きリント
 npm run format       # Biome によるフォーマット + リント（書き込み）
@@ -34,15 +34,35 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 ## アーキテクチャ
 
 ### 技術スタック
+- **SvelteKit 2** + **@sveltejs/adapter-cloudflare**：SSR 対応のファイルベースルーティング。Cloudflare Pages + Workers にデプロイ
 - **Svelte 5** のルーン記法（`$state`, `$derived`, `$effect`）をコンポーネントで使用。`stores/` 配下は `writable`/`derived`（svelte/store）による従来のストア API を使用するハイブリッド方式
 - **TypeScript**（strict モード）
 - **Vite 7** + TailwindCSS 4 + `@tailwindcss/vite` プラグイン
-- **rx-nostr**：RxJS ベースのリアクティブな Nostr リレー通信
+- **rx-nostr**：RxJS ベースのリアクティブな Nostr リレー通信（クライアントサイドのみ）
 - **Biome**：リントとフォーマット（ESLint/Prettier は使用しない）
+
+### ルーティング（`src/routes/`）
+
+SvelteKit のファイルベースルーティングを使用。旧ハッシュ URL（`#/badge/...`）は `+layout.svelte` でパスベース URL にリダイレクトされる。
+
+| URL | ファイル | 説明 |
+|-----|---------|------|
+| `/` | `+page.svelte` | ホーム（バッジ作成・付与・設定タブ） |
+| `/badge/[id]` | `badge/[id]/+page.svelte` | バッジ詳細。`id` = `npub1xxx:encodedDTag` |
+| `/user/[npub]` | `user/[npub]/+page.svelte` | ユーザープロフィール |
+| `/search/[query]` | `search/[query]/+page.svelte` | バッジ検索結果 |
+
+**SSR（OGP 対応）：**
+- `badge/[id]/+page.server.ts` — サーバー側でバッジ定義（kind 30009）を取得し、バッジ名・説明・画像を OGP メタタグに設定
+- `user/[npub]/+page.server.ts` — サーバー側でユーザープロフィール（kind 0）を取得し、ユーザー名・アイコンを OGP メタタグに設定
+- SSR 取得失敗時（リレー接続エラー・タイムアウト）はデフォルト OGP にフォールバック
 
 ### 主なアーキテクチャパターン
 
-**Nostr サービス（`src/lib/services/`）**：
+**サーバーサイドユーティリティ（`src/lib/server/`）**：
+- `nostrFetch.ts` — Cloudflare Workers 環境で動作する軽量 WebSocket Nostr クライアント。ブラウザ固有 API（IndexedDB・window.nostr）不使用。`fetchBadgeDefinitionSSR()` と `fetchUserProfileSSR()` を提供する
+
+**Nostr サービス（`src/lib/services/`）**：クライアントサイド専用
 - `nostr.ts` — モジュールレベルのシングルトンとして `rxNostr` インスタンスを `connectionStrategy: 'aggressive'` で初期化。`publishEvent()` でイベント送信、`subscribeToEvents()` でライブ購読、`fetchPastEvents()` で過去イベント取得（backward req）。さらに `getUserBadgeDefinitions()`、`getBadgeDefinition()`、`getBadgeAwardees()`、`getUserProfiles()`、`searchBadgesByDTag()`、`waitForConnection()`、`cleanup()` も提供する
 - `badgeDefinitionResolver.ts` — メモリ → IndexedDB → リレーの 3 層キャッシュでバッジ定義（kind 30009）を取得する
 - `badgeAwardeeResolver.ts` — 同上の 3 層キャッシュでバッジ受賞者（kind 8）を取得する
@@ -51,7 +71,7 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 
 **ストア（`src/lib/stores/`）：**
 - `auth.ts` — `authStore` が NIP-07 のログイン/ログアウトをラップし、`window.nostr` の存在を確認する
-- `relay.ts` — `relayStore` がデフォルト付きのリレーリストを管理。変更時は App.svelte の `$effect` によりリレーを再初期化する
+- `relay.ts` — `relayStore` がデフォルト付きのリレーリストを管理。変更時は `+layout.svelte` の `$effect` によりリレーを再初期化する
 - `i18n.ts` — `languageStore` と派生した `t` 関数で英語/日本語の翻訳を管理。`localStorage` に言語設定を保存する
 
 **バッジイベントのフロー：**
@@ -69,13 +89,27 @@ npx vitest run src/lib/utils/badgeTagBuilder.test.ts
 
 **Nostr 型定義（`src/types/nostr.d.ts`）**：`NostrEvent` と `WindowNostr` インターフェースを定義し、`Window` に `nostr?` プロパティを拡張する。
 
+### サーバーサイドコードの制約
+
+`src/lib/server/` および `+page.server.ts` では以下を使用禁止：
+- `rx-nostr`（クライアントサイド専用）
+- `IndexedDB`（ブラウザ専用）
+- `window.nostr`（ブラウザ専用）
+
 ### NIP 準拠
 - バッジ定義：kind **30009**（パラメータ化可能な置換型）、`d` タグ = バッジ ID
 - バッジ付与：kind **8**、`a` タグでバッジ定義を参照、`p` タグが受取人の hex 公開鍵
 - 認証：NIP-07 ブラウザ拡張機能のみ
 
 ### デプロイ
-GitHub Pages にデプロイ。ベースパスは `/yakitofu/`（`vite.config.ts` 内で `NODE_ENV` によって切り替え）。CI は Node.js 22.x と 24.x で実行。Volta が `package.json` で Node.js 24.13.1 を固定している。
+Cloudflare Pages + Workers にデプロイ。GitHub リポジトリと Cloudflare Pages を連携し、push 時に自動ビルド・デプロイ。
+
+**Cloudflare Pages ビルド設定：**
+- Root directory: `yakitofu-app`
+- Build command: `npm run build`
+- Build output directory: `.svelte-kit/cloudflare`
+
+CI は Node.js 22.x と 24.x で実行。Volta が `package.json` で Node.js 24.13.1 を固定している。
 
 ### コードスタイル（Biome）
 - シングルクォート、インデント 2 スペース、最大行幅 100 文字、末尾カンマ（ES5 スタイル）
