@@ -36,6 +36,10 @@ onMount(() => {
 });
 </script>
 
+<svelte:head>
+  <meta property="og:site_name" content="Yakitofu - Badge Creation & Award" />
+</svelte:head>
+
 <main class="min-h-screen bg-gray-50 flex flex-col">
   <header class="bg-liner-to-br from-orange-500 to-orange-600 text-white">
     <div class="max-w-7xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between gap-4">

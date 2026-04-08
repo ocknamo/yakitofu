@@ -20,8 +20,8 @@ const displayName = $derived(
       <meta property="og:image" content={data.profile.picture} />
       <meta name="twitter:image" content={data.profile.picture} />
     {:else}
-      <meta property="og:image" content="https://yakitofu.pages.dev/ogp.png" />
-      <meta name="twitter:image" content="https://yakitofu.pages.dev/ogp.png" />
+      <meta property="og:image" content="https://share.yabu.me/26bb2ebed6c552d670c804b0d655267b3c662b21e026d6e48ac93a6070530958/ca0f150a01392cdd123507ff929b730842e744b46e849708fc189c5b4c509b66.png" />
+      <meta name="twitter:image" content="https://share.yabu.me/26bb2ebed6c552d670c804b0d655267b3c662b21e026d6e48ac93a6070530958/ca0f150a01392cdd123507ff929b730842e744b46e849708fc189c5b4c509b66.png" />
     {/if}
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="{displayName} - Yakitofu" />
@@ -32,11 +32,11 @@ const displayName = $derived(
     <meta property="og:title" content="Yakitofu - NIP-58 Badge App" />
     <meta property="og:description" content="Create and award NIP-58 badges on Nostr" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://yakitofu.pages.dev/ogp.png" />
+    <meta property="og:image" content="https://share.yabu.me/26bb2ebed6c552d670c804b0d655267b3c662b21e026d6e48ac93a6070530958/ca0f150a01392cdd123507ff929b730842e744b46e849708fc189c5b4c509b66.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Yakitofu - NIP-58 Badge App" />
     <meta name="twitter:description" content="Create and award NIP-58 badges on Nostr" />
-    <meta name="twitter:image" content="https://yakitofu.pages.dev/ogp.png" />
+    <meta name="twitter:image" content="https://share.yabu.me/26bb2ebed6c552d670c804b0d655267b3c662b21e026d6e48ac93a6070530958/ca0f150a01392cdd123507ff929b730842e744b46e849708fc189c5b4c509b66.png" />
   {/if}
 </svelte:head>
 

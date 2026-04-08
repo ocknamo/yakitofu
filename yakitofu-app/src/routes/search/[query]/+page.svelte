@@ -11,7 +11,7 @@ const dTag = $derived(decodeURIComponent($page.params.query ?? ''));
   <meta property="og:title" content="Search: {dTag} - Yakitofu" />
   <meta property="og:description" content="Nostr badges matching '{dTag}'" />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://yakitofu.pages.dev/ogp.png" />
+  <meta property="og:image" content="https://share.yabu.me/26bb2ebed6c552d670c804b0d655267b3c662b21e026d6e48ac93a6070530958/ca0f150a01392cdd123507ff929b730842e744b46e849708fc189c5b4c509b66.png" />
   <meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
