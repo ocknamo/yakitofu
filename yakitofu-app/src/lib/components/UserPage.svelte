@@ -1,4 +1,5 @@
 <script lang="ts">
+import instantMixIcon from '../../assets/instant_mix.svg';
 import type { ReceivedBadge } from '../services/badgeAwardResolver';
 import { resolveReceivedBadges } from '../services/badgeAwardResolver';
 import {
@@ -215,9 +216,11 @@ function onManagerSaved(): void {
       {#if isOwnProfile}
         <button
           onclick={() => (showManager = !showManager)}
-          class="text-sm text-orange-500 hover:text-orange-600 font-medium"
+          title={$t('manageProfileBadges')}
+          aria-label={$t('manageProfileBadges')}
+          class="text-gray-400 hover:text-orange-500 transition-colors p-1 rounded"
         >
-          {$t('manageProfileBadges')}
+          <img src={instantMixIcon} alt="" aria-hidden="true" class="w-5 h-5" />
         </button>
       {/if}
     </div>
@@ -268,39 +271,53 @@ function onManagerSaved(): void {
   </div>
 
   <!-- Received badges section -->
-  <div class="mb-8">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('receivedBadges')}</h3>
+  <details class="mb-8 group">
+    <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-900">{$t('receivedBadges')}</h3>
+      <svg
+        class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </summary>
 
-    {#if loadingReceivedBadges}
-      <div class="flex flex-wrap gap-3">
-        {#each Array(4) as _}
-          <div class="w-14 h-14 rounded-full bg-gray-200 animate-pulse"></div>
-        {/each}
-      </div>
-    {:else if receivedBadges.length === 0}
-      <p class="text-sm text-gray-500">{$t('noReceivedBadges')}</p>
-    {:else}
-      <div class="flex flex-wrap gap-3">
-        {#each receivedBadges as badge (`${badge.pubkey}:${badge.dTag}`)}
-          <a
-            href="/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
-            title={badge.name}
-            class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors shrink-0 bg-gray-50"
-          >
-            {#if badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
-              <img
-                src={badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
-                alt={badge.name}
-                class="w-full h-full object-cover"
-              />
-            {:else}
-              <div class="w-full h-full flex items-center justify-center text-xl">📛</div>
-            {/if}
-          </a>
-        {/each}
-      </div>
-    {/if}
-  </div>
+    <div class="mt-4">
+      {#if loadingReceivedBadges}
+        <div class="flex flex-wrap gap-3">
+          {#each Array(4) as _}
+            <div class="w-14 h-14 rounded-full bg-gray-200 animate-pulse"></div>
+          {/each}
+        </div>
+      {:else if receivedBadges.length === 0}
+        <p class="text-sm text-gray-500">{$t('noReceivedBadges')}</p>
+      {:else}
+        <div class="flex flex-wrap gap-3">
+          {#each receivedBadges as badge (`${badge.pubkey}:${badge.dTag}`)}
+            <a
+              href="/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
+              title={badge.name}
+              class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors shrink-0 bg-gray-50"
+            >
+              {#if badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+                <img
+                  src={badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+                  alt={badge.name}
+                  class="w-full h-full object-cover"
+                />
+              {:else}
+                <div class="w-full h-full flex items-center justify-center text-xl">📛</div>
+              {/if}
+            </a>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </details>
 
   <!-- Badges section -->
   <div>
