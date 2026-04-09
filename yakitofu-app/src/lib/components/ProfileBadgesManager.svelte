@@ -70,6 +70,11 @@ async function save(): Promise<void> {
   saveSuccess = false;
 
   try {
+    // Capture timestamp once so both events share the same created_at.
+    // If Date.now() were called again after await publishEvent(), the tombstone
+    // could get a later timestamp and be mistakenly picked as "newest".
+    const now = Math.floor(Date.now() / 1000);
+
     // Build kind 10008 tags: ordered pairs of a/e for each selected badge
     const tags: string[][] = [];
     for (const badge of selected) {
@@ -79,7 +84,7 @@ async function save(): Promise<void> {
 
     const event10008 = {
       kind: 10008,
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: now,
       tags,
       content: '',
     };
@@ -87,10 +92,11 @@ async function save(): Promise<void> {
     const signed10008 = await window.nostr.signEvent(event10008);
     await publishEvent(signed10008);
 
-    // Tombstone old kind 30008 (d=profile_badges) to help relays clean up legacy data
+    // Tombstone old kind 30008 (d=profile_badges) to help relays clean up legacy data.
+    // Reuse same created_at to prevent the tombstone from being picked as "newest".
     const event30008 = {
       kind: 30008,
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: now,
       tags: [['d', 'profile_badges']],
       content: '',
     };

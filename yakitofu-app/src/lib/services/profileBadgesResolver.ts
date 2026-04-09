@@ -80,13 +80,12 @@ export function resolveProfileBadges(
           return;
         }
 
-        // Pick the newest event (kind 10008 preferred via sort stability if same timestamp)
-        const newest = events.reduce((best, ev) =>
-          ev.created_at > best.created_at ||
-          (ev.created_at === best.created_at && ev.kind === 10008)
-            ? ev
-            : best
-        );
+        // Prefer kind 10008 (new replaceable format) over kind 30008 (legacy/tombstone).
+        // Never let a tombstone kind 30008 override a valid kind 10008, even if published later.
+        const kind10008 = events.filter((ev) => ev.kind === 10008);
+        const kind30008 = events.filter((ev) => ev.kind === 30008);
+        const pool = kind10008.length > 0 ? kind10008 : kind30008;
+        const newest = pool.reduce((best, ev) => (ev.created_at >= best.created_at ? ev : best));
 
         const entries = parseProfileBadgesEvent(newest);
 
