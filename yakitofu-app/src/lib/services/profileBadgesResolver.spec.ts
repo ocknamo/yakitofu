@@ -1,5 +1,5 @@
+import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Subject, of } from 'rxjs';
 import type { NostrEvent } from '../../types/nostr';
 import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
 
@@ -13,8 +13,8 @@ vi.mock('./badgeDefinitionResolver', () => ({
   resolveBadgeDefinition: vi.fn(),
 }));
 
-import { getProfileBadges } from './nostr';
 import { resolveBadgeDefinition } from './badgeDefinitionResolver';
+import { getProfileBadges } from './nostr';
 import { invalidateProfileBadgesCache, resolveProfileBadges } from './profileBadgesResolver';
 
 // ---------------------------------------------------------------------------
@@ -36,12 +36,7 @@ const mockBadgeDef: BadgeDefinitionWithPubkey = {
   createdAt: 1_000_000,
 };
 
-function makeEvent(
-  kind: number,
-  createdAt: number,
-  tags: string[][],
-  pubkey = PUBKEY,
-): NostrEvent {
+function makeEvent(kind: number, createdAt: number, tags: string[][], pubkey = PUBKEY): NostrEvent {
   return {
     id: `ev-${kind}-${createdAt}`,
     pubkey,
@@ -62,7 +57,7 @@ type Packet = { event: NostrEvent; from: string };
  */
 async function resolveWith(
   events: NostrEvent[],
-  pubkey = PUBKEY,
+  pubkey = PUBKEY
 ): Promise<(BadgeDefinitionWithPubkey[] | null)[]> {
   const relay$ = new Subject<Packet>();
 
@@ -167,8 +162,11 @@ describe('resolveProfileBadges', () => {
       const foreignEvent = makeEvent(
         10008,
         1000,
-        [['a', `30009:${ISSUER}:${DTAG}`], ['e', 'award-id-1']],
-        'other-pubkey-zzz',
+        [
+          ['a', `30009:${ISSUER}:${DTAG}`],
+          ['e', 'award-id-1'],
+        ],
+        'other-pubkey-zzz'
       );
 
       const values = await resolveWith([foreignEvent]);
