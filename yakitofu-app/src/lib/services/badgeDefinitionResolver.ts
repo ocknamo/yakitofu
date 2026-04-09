@@ -95,7 +95,10 @@ export function resolveBadgeDefinition(
           });
 
           waitForConnection().then(() => {
-            if (!subscription.closed) req.emit(filters);
+            if (!subscription.closed) {
+              req.emit(filters);
+              req.over(); // Allow observable to complete after EOSE
+            }
           });
 
           return () => subscription.unsubscribe();
@@ -177,7 +180,10 @@ export function resolveBadgeDefinitionsByPubkey(
           });
 
           waitForConnection().then(() => {
-            if (!subscription.closed) req.emit(filters);
+            if (!subscription.closed) {
+              req.emit(filters);
+              req.over(); // Allow observable to complete after EOSE
+            }
           });
 
           return () => subscription.unsubscribe();

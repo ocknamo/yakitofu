@@ -2,7 +2,7 @@ import type { BadgeDefinition } from '../utils/badgeEventParser';
 import type { UserProfile } from '../utils/userProfileParser';
 
 const DB_NAME = 'yakitofu-cache';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const MAX_ENTRIES = 100;
 
 interface CachedProfile extends UserProfile {
@@ -26,7 +26,7 @@ interface CachedBadgeAwardees {
 interface CachedReceivedBadgeAwards {
   key: string; // recipientPubkey
   recipientPubkey: string;
-  badges: Array<BadgeDefinition & { pubkey: string }>;
+  badges: Array<BadgeDefinition & { pubkey: string; awardEventId: string }>;
   cachedAt: number;
 }
 
@@ -59,8 +59,8 @@ function openCacheDB(): Promise<IDBDatabase> {
         awardeeStore.createIndex('cachedAt', 'cachedAt', { unique: false });
       }
 
-      // v4 -> v5: receivedBadgeAwards の格納形式が変わるため再作成する
-      if (oldVersion < 5 && db.objectStoreNames.contains('receivedBadgeAwards')) {
+      // v4 -> v5 / v5 -> v6: receivedBadgeAwards の格納形式が変わるため再作成する
+      if (oldVersion < 6 && db.objectStoreNames.contains('receivedBadgeAwards')) {
         db.deleteObjectStore('receivedBadgeAwards');
       }
 
@@ -326,9 +326,10 @@ export async function setCachedBadgeAwardees(
   });
 }
 
-export async function getCachedReceivedBadgeAwards(
-  recipientPubkey: string
-): Promise<{ badges: Array<BadgeDefinition & { pubkey: string }>; cachedAt: number } | null> {
+export async function getCachedReceivedBadgeAwards(recipientPubkey: string): Promise<{
+  badges: Array<BadgeDefinition & { pubkey: string; awardEventId: string }>;
+  cachedAt: number;
+} | null> {
   const db = await openCacheDB();
 
   return new Promise((resolve, reject) => {
@@ -348,7 +349,7 @@ export async function getCachedReceivedBadgeAwards(
 
 export async function setCachedReceivedBadgeAwards(
   recipientPubkey: string,
-  badges: Array<BadgeDefinition & { pubkey: string }>
+  badges: Array<BadgeDefinition & { pubkey: string; awardEventId: string }>
 ): Promise<void> {
   const db = await openCacheDB();
 

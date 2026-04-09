@@ -1,27 +1,35 @@
 <script lang="ts">
+import type { ReceivedBadge } from '../services/badgeAwardResolver';
 import { resolveReceivedBadges } from '../services/badgeAwardResolver';
 import {
   type BadgeDefinitionWithPubkey,
   resolveBadgeDefinitionsByPubkey,
 } from '../services/badgeDefinitionResolver';
+import { resolveProfileBadges } from '../services/profileBadgesResolver';
 import { resolveProfiles } from '../services/profileResolver';
+import { authStore } from '../stores/auth';
 import { t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
 import ProfileAvatar from './ProfileAvatar.svelte';
+import ProfileBadgesManager from './ProfileBadgesManager.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
 
 let { pubkey }: { pubkey: string } = $props();
 
 let badges: BadgeDefinition[] = $state([]);
 let loadingBadges = $state(true);
-let receivedBadges: BadgeDefinitionWithPubkey[] = $state([]);
+let receivedBadges: ReceivedBadge[] = $state([]);
 let loadingReceivedBadges = $state(true);
+let profileBadges: BadgeDefinitionWithPubkey[] | null = $state(null);
+let loadingProfileBadges = $state(true);
 let profile: UserProfile | null = $state(null);
 let loadingProfile = $state(true);
+let showManager = $state(false);
 
 let npub = $derived(hexToNpub(pubkey));
+let isOwnProfile = $derived($authStore.isLoggedIn && $authStore.pubkey === pubkey);
 
 // Fetch user profile
 $effect(() => {
@@ -42,6 +50,42 @@ $effect(() => {
     },
     error: () => {
       loadingProfile = false;
+    },
+  });
+
+  return () => {
+    subscription.unsubscribe();
+    clearTimeout(timeoutId);
+  };
+});
+
+// Fetch profile badges (kind 10008)
+$effect(() => {
+  profileBadges = null;
+  loadingProfileBadges = true;
+  showManager = false;
+
+  const timeoutId = setTimeout(() => {
+    loadingProfileBadges = false;
+  }, 10 * 1000);
+
+  const subscription = resolveProfileBadges(pubkey).subscribe({
+    next: (badges) => {
+      if (badges !== null) {
+        // non-null のみ更新 — null は BehaviorSubject 初期値か中間状態
+        profileBadges = badges;
+        loadingProfileBadges = false;
+        clearTimeout(timeoutId);
+      }
+    },
+    complete: () => {
+      // リレーチェック完了。profileBadges が null のまま = kind 10008 未発行
+      loadingProfileBadges = false;
+      clearTimeout(timeoutId);
+    },
+    error: () => {
+      loadingProfileBadges = false;
+      clearTimeout(timeoutId);
     },
   });
 
@@ -112,6 +156,26 @@ $effect(() => {
 function shortNpub(n: string): string {
   return `${n.slice(0, 12)}...${n.slice(-6)}`;
 }
+
+function onManagerSaved(): void {
+  showManager = false;
+  // Refetch profile badges after saving
+  loadingProfileBadges = true;
+  const subscription = resolveProfileBadges(pubkey).subscribe({
+    next: (b) => {
+      profileBadges = b;
+      loadingProfileBadges = false;
+    },
+    complete: () => {
+      loadingProfileBadges = false;
+    },
+    error: () => {
+      loadingProfileBadges = false;
+    },
+  });
+  // Auto-cleanup after 10s
+  setTimeout(() => subscription.unsubscribe(), 10000);
+}
 </script>
 
 <div class="max-w-2xl mx-auto">
@@ -141,6 +205,65 @@ function shortNpub(n: string): string {
         {profile?.displayName || profile?.name || shortNpub(npub)}
       </h2>
       <p class="text-xs text-gray-400 font-mono mt-1">{shortNpub(npub)}</p>
+    {/if}
+  </div>
+
+  <!-- Profile Badges section (kind 10008) -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-900">{$t('profileBadges')}</h3>
+      {#if isOwnProfile}
+        <button
+          onclick={() => (showManager = !showManager)}
+          class="text-sm text-orange-500 hover:text-orange-600 font-medium"
+        >
+          {$t('manageProfileBadges')}
+        </button>
+      {/if}
+    </div>
+
+    {#if showManager && isOwnProfile}
+      <div class="mb-4">
+        <ProfileBadgesManager
+          {receivedBadges}
+          currentProfileBadges={profileBadges}
+          {pubkey}
+          onSaved={onManagerSaved}
+        />
+      </div>
+    {/if}
+
+    {#if loadingProfileBadges}
+      <div class="flex flex-wrap gap-3">
+        {#each Array(3) as _}
+          <div class="w-14 h-14 rounded-full bg-gray-200 animate-pulse"></div>
+        {/each}
+      </div>
+    {:else if profileBadges !== null && profileBadges.length > 0}
+      <div class="flex flex-wrap gap-3">
+        {#each profileBadges as badge (`${badge.pubkey}:${badge.dTag}`)}
+          <a
+            href="/badge/{hexToNpub(badge.pubkey)}:{encodeURIComponent(badge.dTag)}"
+            title={badge.name}
+            class="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-colors shrink-0 bg-gray-50"
+          >
+            {#if badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+              <img
+                src={badge.thumbnails.m || badge.thumbnails.s || badge.thumbnails.xs || badge.imageUrl}
+                alt={badge.name}
+                class="w-full h-full object-cover"
+              />
+            {:else}
+              <div class="w-full h-full flex items-center justify-center text-xl">📛</div>
+            {/if}
+          </a>
+        {/each}
+      </div>
+    {:else if profileBadges !== null && profileBadges.length === 0}
+      <p class="text-sm text-gray-500">{$t('noProfileBadges')}</p>
+    {:else}
+      <!-- profileBadges === null: no kind 10008 event found, show nothing -->
+      <p class="text-sm text-gray-400 italic">{$t('noProfileBadges')}</p>
     {/if}
   </div>
 
