@@ -12,6 +12,7 @@ import { t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
+import LoginButton from './LoginButton.svelte';
 import ProfileAvatar from './ProfileAvatar.svelte';
 import ProfileBadgesManager from './ProfileBadgesManager.svelte';
 import ProgressiveImage from './ProgressiveImage.svelte';
@@ -207,6 +208,13 @@ function onManagerSaved(): void {
       <p class="text-xs text-gray-400 font-mono mt-1">{shortNpub(npub)}</p>
     {/if}
   </div>
+
+  <!-- Login prompt (shown when not logged in) -->
+  {#if !$authStore.isLoggedIn}
+    <div class="mb-8 flex justify-center sm:hidden">
+      <LoginButton />
+    </div>
+  {/if}
 
   <!-- Profile Badges section (kind 10008) -->
   <div class="mb-8">
