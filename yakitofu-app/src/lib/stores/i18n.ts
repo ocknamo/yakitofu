@@ -307,6 +307,41 @@ const translations: Translations = {
     en: 'No badges received yet.',
     ja: 'まだバッジを受け取っていません。',
   },
+
+  // Profile Badges (kind 10008)
+  profileBadges: {
+    en: 'Profile Badges',
+    ja: 'プロフィールバッジ',
+  },
+  noProfileBadges: {
+    en: 'No profile badges selected.',
+    ja: 'プロフィールバッジが選択されていません。',
+  },
+  manageProfileBadges: {
+    en: 'Manage Profile Badges',
+    ja: 'プロフィールバッジを管理',
+  },
+  saveProfileBadges: {
+    en: 'Save',
+    ja: '保存',
+  },
+  profileBadgesUpdated: {
+    en: 'Profile badges updated.',
+    ja: 'プロフィールバッジを更新しました。',
+  },
+  profileBadgesUpdateFailed: {
+    en: 'Failed to update profile badges.',
+    ja: 'プロフィールバッジの更新に失敗しました。',
+  },
+  moveUp: {
+    en: 'Move up',
+    ja: '上へ',
+  },
+  moveDown: {
+    en: 'Move down',
+    ja: '下へ',
+  },
+
   myPage: {
     en: 'My Page',
     ja: 'マイページ',

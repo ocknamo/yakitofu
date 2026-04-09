@@ -9,8 +9,13 @@ import { getBadgeDefinition, getUserReceivedBadgeAwards, waitForConnection } fro
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 const EMPTY_TTL_MS = 30 * 1000; // 30 seconds (for empty results to avoid caching relay failures)
 
+/** Badge received by a user, including the kind 8 award event ID needed for kind 10008. */
+export interface ReceivedBadge extends BadgeDefinitionWithPubkey {
+  awardEventId: string;
+}
+
 interface CachedEntry {
-  badges: BadgeDefinitionWithPubkey[];
+  badges: ReceivedBadge[];
   cachedAt: number;
 }
 
@@ -23,11 +28,8 @@ function isFresh(entry: CachedEntry): boolean {
 }
 
 /** 既存キャッシュと新規取得バッジをマージ（同一 pubkey:dTag は新しい createdAt を優先）*/
-function mergeBadges(
-  existing: BadgeDefinitionWithPubkey[],
-  incoming: BadgeDefinitionWithPubkey[]
-): BadgeDefinitionWithPubkey[] {
-  const map = new Map<string, BadgeDefinitionWithPubkey>();
+function mergeBadges(existing: ReceivedBadge[], incoming: ReceivedBadge[]): ReceivedBadge[] {
+  const map = new Map<string, ReceivedBadge>();
   for (const badge of existing) {
     map.set(`${badge.pubkey}:${badge.dTag}`, badge);
   }
@@ -46,13 +48,11 @@ function mergeBadges(
  * Cache TTL is 10 minutes — if cache is fresh, the relay is not queried at all.
  * When relay is needed: collect all kind 8 award events until EOSE, then fetch
  * each badge definition (kind 30009) directly from relay in parallel.
- * Returns Observable<BadgeDefinitionWithPubkey[]> that emits once and completes.
+ * Returns Observable<ReceivedBadge[]> that emits once and completes.
  */
-export function resolveReceivedBadges(
-  recipientPubkey: string
-): Observable<BadgeDefinitionWithPubkey[]> {
+export function resolveReceivedBadges(recipientPubkey: string): Observable<ReceivedBadge[]> {
   return defer(() => {
-    const subject = new BehaviorSubject<BadgeDefinitionWithPubkey[]>([]);
+    const subject = new BehaviorSubject<ReceivedBadge[]>([]);
 
     // 1. In-memory cache
     const memCached = receivedBadgesCache.get(recipientPubkey);
@@ -85,7 +85,8 @@ export function resolveReceivedBadges(
         } = getUserReceivedBadgeAwards(recipientPubkey);
 
         return new Observable<void>((subscriber) => {
-          const awardEntries: Array<{ issuerPubkey: string; dTag: string }> = [];
+          const awardEntries: Array<{ issuerPubkey: string; dTag: string; awardEventId: string }> =
+            [];
           const defSubs: Subscription[] = [];
           const defTimeouts: Array<ReturnType<typeof setTimeout>> = [];
           let awardsCompleted = false;
@@ -103,9 +104,9 @@ export function resolveReceivedBadges(
             }
 
             let remaining = awardEntries.length;
-            const fetched: BadgeDefinitionWithPubkey[] = [];
+            const fetched: ReceivedBadge[] = [];
 
-            for (const { issuerPubkey, dTag } of awardEntries) {
+            for (const { issuerPubkey, dTag, awardEventId } of awardEntries) {
               const {
                 observable: defObs,
                 req: defReq,
@@ -124,7 +125,7 @@ export function resolveReceivedBadges(
                     if (event.pubkey !== issuerPubkey) return;
                     const eventDTag = event.tags.find((t: string[]) => t[0] === 'd')?.[1];
                     if (eventDTag !== dTag) return;
-                    fetched.push({ ...parseBadgeEvent(event), pubkey: issuerPubkey });
+                    fetched.push({ ...parseBadgeEvent(event), pubkey: issuerPubkey, awardEventId });
                     found = true;
                   },
                   error: (err) => {
@@ -186,6 +187,7 @@ export function resolveReceivedBadges(
             )
             .subscribe({
               next: (packet) => {
+                const awardEventId = packet.event.id ?? '';
                 for (const tag of packet.event.tags) {
                   if (tag[0] !== 'a') continue;
                   const parts = (tag[1] ?? '').split(':');
@@ -196,7 +198,7 @@ export function resolveReceivedBadges(
                   const key = `${issuerPubkey}:${dTag}`;
                   if (!awardKeys.has(key)) {
                     awardKeys.add(key);
-                    awardEntries.push({ issuerPubkey, dTag });
+                    awardEntries.push({ issuerPubkey, dTag, awardEventId });
                   }
                 }
               },
@@ -219,7 +221,7 @@ export function resolveReceivedBadges(
             }, 3 * 1000);
           });
 
-          function finalize(resolved: BadgeDefinitionWithPubkey[]): void {
+          function finalize(resolved: ReceivedBadge[]): void {
             // 電波不良で一部リレーが応答しなかった場合でも既存キャッシュと
             // マージすることで過去取得済みバッジを失わないようにする
             const existing = receivedBadgesCache.get(recipientPubkey);

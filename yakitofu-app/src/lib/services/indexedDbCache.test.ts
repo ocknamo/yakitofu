@@ -334,6 +334,7 @@ describe('getCachedReceivedBadgeAwards / setCachedReceivedBadgeAwards', () => {
     const badges = [
       {
         pubkey: 'issuer1',
+        awardEventId: 'award-event-id-1',
         id: 'id1',
         name: 'Badge1',
         description: 'desc',
@@ -362,6 +363,7 @@ describe('getCachedReceivedBadgeAwards / setCachedReceivedBadgeAwards', () => {
     const badges = [
       {
         pubkey: 'issuer1',
+        awardEventId: 'award-event-id-2',
         id: 'id1',
         name: 'Badge1',
         description: '',
