@@ -1,5 +1,4 @@
 <script lang="ts">
-import instantMixIcon from '../../assets/instant_mix.svg';
 import type { ReceivedBadge } from '../services/badgeAwardResolver';
 import { resolveReceivedBadges } from '../services/badgeAwardResolver';
 import {
@@ -218,9 +217,13 @@ function onManagerSaved(): void {
           onclick={() => (showManager = !showManager)}
           title={$t('manageProfileBadges')}
           aria-label={$t('manageProfileBadges')}
-          class="text-gray-400 hover:text-orange-500 transition-colors p-1 rounded"
+          class="transition-colors p-1 rounded {showManager
+            ? 'text-orange-500'
+            : 'text-gray-400 hover:text-orange-500'}"
         >
-          <img src={instantMixIcon} alt="" aria-hidden="true" class="w-5 h-5" />
+          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor" aria-hidden="true">
+            <path d="M200-160v-280h-80v-80h240v80h-80v280h-80Zm0-440v-200h80v200h-80Zm160 0v-80h80v-120h80v120h80v80H360Zm80 440v-360h80v360h-80Zm240 0v-120h-80v-80h240v80h-80v120h-80Zm0-280v-360h80v360h-80Z"/>
+          </svg>
         </button>
       {/if}
     </div>
