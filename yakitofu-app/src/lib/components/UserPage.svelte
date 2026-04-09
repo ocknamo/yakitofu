@@ -71,11 +71,15 @@ $effect(() => {
 
   const subscription = resolveProfileBadges(pubkey).subscribe({
     next: (badges) => {
-      profileBadges = badges;
-      loadingProfileBadges = false;
-      clearTimeout(timeoutId);
+      if (badges !== null) {
+        // non-null のみ更新 — null は BehaviorSubject 初期値か中間状態
+        profileBadges = badges;
+        loadingProfileBadges = false;
+        clearTimeout(timeoutId);
+      }
     },
     complete: () => {
+      // リレーチェック完了。profileBadges が null のまま = kind 10008 未発行
       loadingProfileBadges = false;
       clearTimeout(timeoutId);
     },

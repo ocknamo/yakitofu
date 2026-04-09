@@ -1,5 +1,5 @@
 import { BehaviorSubject, defer, forkJoin, Observable, of } from 'rxjs';
-import { catchError, filter, take, tap } from 'rxjs/operators';
+import { catchError, defaultIfEmpty, filter, take, tap } from 'rxjs/operators';
 import type { NostrEvent } from '../../types/nostr';
 import { parseProfileBadgesEvent } from '../utils/profileBadgesParser';
 import type { BadgeDefinitionWithPubkey } from './badgeDefinitionResolver';
@@ -42,6 +42,7 @@ export function resolveProfileBadges(
     const cached = profileBadgesCache.get(pubkey);
     if (cached && isFresh(cached)) {
       subject.next(cached.badges);
+      subject.complete();
       initialized = true;
       // Still return the subject so callers get the value, but don't fetch relay
       return subject.asObservable();
@@ -106,6 +107,7 @@ export function resolveProfileBadges(
           return resolveBadgeDefinition(issuerPubkey, dTag).pipe(
             filter((v): v is BadgeDefinitionWithPubkey => v !== null),
             take(1),
+            defaultIfEmpty(null as BadgeDefinitionWithPubkey | null),
             catchError(() => of(null))
           );
         });
