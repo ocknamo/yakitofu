@@ -38,14 +38,12 @@ export function resolveProfileBadges(
     const subject = new BehaviorSubject<BadgeDefinitionWithPubkey[] | null>(null);
     let initialized = false;
 
-    // 1. In-memory cache
+    // 1. In-memory cache — fresh: emit cached value and complete without hitting relay.
+    // Using of() instead of subject.next + subject.complete because subscribing to an
+    // already-completed BehaviorSubject only delivers complete (not the last value).
     const cached = profileBadgesCache.get(pubkey);
     if (cached && isFresh(cached)) {
-      subject.next(cached.badges);
-      subject.complete();
-      initialized = true;
-      // Still return the subject so callers get the value, but don't fetch relay
-      return subject.asObservable();
+      return of(cached.badges);
     }
 
     if (cached) {
