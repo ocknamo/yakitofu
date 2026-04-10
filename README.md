@@ -9,6 +9,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 - **NIP-07認証**: ブラウザ拡張機能による安全なログイン
 - **バッジ定義作成**: カスタムバッジの作成と管理（kind 30009）
 - **バッジ付与**: npub形式でユーザーにバッジを授与（kind 8）
+- **プロフィールバッジ管理**: 受け取ったバッジをプロフィールに表示・管理（kind 10008）
 - **OGP対応**: バッジ・ユーザーページごとにSSRでOGPメタタグを動的生成
 - **リレー管理**: カスタムリレーサーバーの追加・削除
 - **多言語対応**: 日本語・英語の切り替え
@@ -18,7 +19,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 
 ### 前提条件
 
-- Node.js 18以上
+- Node.js 22以上
 - NIP-07対応のNostr拡張機能（nos2x, Alby等）
 
 ### セットアップと起動
@@ -103,7 +104,7 @@ yakitofu/
 ## ドキュメント
 
 - **[yakitofu-app/README.md](./yakitofu-app/README.md)** - アプリケーションの詳細な使い方
-- **[AGENTS.md](./AGENTS.md)** - AIエージェント向けの開発ガイド
+- **[AGENTS.md](./AGENTS.md)** - AIエージェント・Claude Code向けの開発ガイド
 - **[docs/SVELTE_INIT.md](./docs/SVELTE_INIT.md)** - Svelteプロジェクトのセットアップ手順
 - **[.github/README.md](./.github/README.md)** - CI/CDパイプラインの説明
 - **[NIP-58仕様](https://github.com/nostr-protocol/nips/blob/master/58.md)** - バッジシステムの公式仕様
@@ -172,7 +173,7 @@ NIP-58は、Nostrプロトコルでバッジを定義・授与・表示するた
 
 - **Badge Definition (kind 30009)**: バッジの定義
 - **Badge Award (kind 8)**: バッジの授与
-- **Profile Badges (kind 30008)**: プロフィールでのバッジ表示
+- **Profile Badges (kind 10008)**: プロフィールでのバッジ表示
 
 詳細は [NIP-58仕様書](https://github.com/nostr-protocol/nips/blob/master/58.md) を参照してください。
 
@@ -190,6 +191,6 @@ MIT License - 詳細は [yakitofu-app/LICENSE](./yakitofu-app/LICENSE) を参照
 
 ---
 
-**最終更新**: 2026/03/22
+**最終更新**: 2026/04/10
 **バージョン**: v0.0.0
 **Node.js**: 22+

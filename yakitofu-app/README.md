@@ -11,6 +11,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 - **NIP-07ログイン**: ブラウザ拡張機能を使用した安全なログイン
 - **バッジ定義作成**: kind 30009イベントでバッジを定義
 - **バッジ付与**: kind 8イベントでユーザーにバッジを授与
+- **プロフィールバッジ管理**: 受け取ったバッジをプロフィールに表示・管理（kind 10008）
 - **バッジ検索**: バッジID（dTag）またはnpubでバッジ・ユーザーを検索
 - **バッジ詳細ページ**: バッジの詳細情報と受賞者一覧を表示
 - **ユーザーページ**: 指定ユーザーが定義したバッジ一覧を表示
@@ -34,7 +35,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 
 ### 前提条件
 
-- Node.js 22以上
+- Node.js 22以上（Voltaで24.13.1を固定）
 - NIP-07対応のNostr拡張機能（例: nos2x, Alby, etc.）
 
 ### インストール
@@ -113,7 +114,7 @@ NIP-58は、Nostrプロトコルでバッジを定義・授与・表示するた
 
 - **Badge Definition (kind 30009)**: バッジの定義
 - **Badge Award (kind 8)**: バッジの授与
-- **Profile Badges (kind 30008)**: プロフィールでのバッジ表示
+- **Profile Badges (kind 10008)**: プロフィールでのバッジ表示
 
 詳細は [NIP-58仕様](https://github.com/nostr-protocol/nips/blob/master/58.md) を参照してください。
 
