@@ -47,27 +47,7 @@ AIエージェント向けプロジェクトガイド
 
 ## コマンド
 
-```bash
-cd yakitofu-app
-
-npm run dev          # 開発サーバー起動（http://localhost:5173）
-npm run build        # 本番ビルド（.svelte-kit/cloudflare/ に出力）
-npm run preview      # 本番ビルドのローカルプレビュー
-
-npm run check        # svelte-kit sync + TypeScript + svelte-check による型チェック
-npm run lint         # Biome によるリントチェック
-npm run lint:fix     # Biome による自動修正付きリント
-npm run format       # Biome によるフォーマット + リント（書き込み）
-npm run format:check # Biome によるフォーマットチェックのみ（CI で使用）
-
-npm run test         # 全テストの実行（Vitest、run モード）
-```
-
-単一のテストファイルを実行する場合：
-
-```bash
-npx vitest run src/lib/utils/badgeTagBuilder.spec.ts
-```
+コマンド一覧は `yakitofu-app/package.json` の `scripts` を参照。すべて `cd yakitofu-app` 後に `npm run <script>` で実行する。
 
 ## 変更後の検証（必須）
 
