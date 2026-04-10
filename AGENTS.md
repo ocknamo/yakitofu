@@ -151,111 +151,17 @@ SvelteKitのファイルベースルーティングを使用。旧ハッシュUR
 
 ## ファイル構成
 
-```
-yakitofu/
-├── AGENTS.md                     # 本ファイル（AIエージェント向けガイド）
-├── CLAUDE.md                     # Claude Code向けガイド（@AGENTS.md を参照）
-├── README.md                     # プロジェクト概要
-├── .gitignore
-│
-├── docs/                         # ドキュメント
-│   ├── SVELTE_INIT.md           # Svelteプロジェクトセットアップガイド
-│   ├── nips/                    # NIP仕様書
-│   └── rx-nostr/                # rx-nostrライブラリのドキュメント
-│
-├── .github/                      # GitHub設定
-│   ├── workflows/ci.yml         # CI（Node.js 22.x / 24.x でテスト・ビルド）
-│   └── README.md                # CI/CD説明
-│
-└── yakitofu-app/                 # メインアプリケーション
-    ├── package.json             # 依存関係とスクリプト
-    ├── svelte.config.js         # SvelteKit + adapter-cloudflare設定
-    ├── vite.config.ts           # Viteビルド設定
-    ├── tsconfig.json            # TypeScript設定
-    ├── biome.json               # Biome設定（Svelte 5対応済み）
-    ├── wrangler.toml            # Cloudflare設定
-    │
-    ├── public/                  # 静的ファイル
-    │   └── yakitofu.svg         # アプリアイコン
-    │
-    └── src/
-        ├── app.html             # SvelteKitテンプレート
-        ├── app.css              # Tailwind CSS インポート
-        ├── main.ts              # Viteエントリーポイント（SvelteKit外）
-        ├── App.svelte           # ルートコンポーネント（SvelteKit外）
-        │
-        ├── assets/              # SVGアセット
-        │   ├── delete.svg
-        │   ├── instant_mix.svg
-        │   └── lang.svg
-        │
-        ├── routes/              # SvelteKitファイルベースルーティング
-        │   ├── +layout.svelte            # 共通レイアウト（ハッシュURLリダイレクト）
-        │   ├── +page.svelte              # ホーム（バッジ作成・付与・設定タブ）
-        │   ├── badge/[id]/
-        │   │   ├── +page.server.ts      # SSR: バッジOGPメタタグ生成
-        │   │   └── +page.svelte         # バッジ詳細ページ
-        │   ├── user/[npub]/
-        │   │   ├── +page.server.ts      # SSR: ユーザーOGPメタタグ生成
-        │   │   └── +page.svelte         # ユーザーページ
-        │   └── search/[query]/
-        │       └── +page.svelte         # 検索結果ページ
-        │
-        ├── lib/
-        │   ├── server/          # サーバーサイド専用（Workers環境）
-        │   │   └── nostrFetch.ts        # 軽量WebSocket Nostrクライアント（SSR用）
-        │   │
-        │   ├── components/      # UIコンポーネント
-        │   │   ├── BadgeAwardForm.svelte          # バッジ授与フォーム
-        │   │   ├── BadgeDefinitionForm.svelte     # バッジ作成フォーム
-        │   │   ├── BadgePage.svelte               # バッジ詳細ページ（受賞者一覧含む）
-        │   │   ├── ImageModal.svelte              # 画像拡大モーダル
-        │   │   ├── ImagePreview.svelte            # 画像プレビュー
-        │   │   ├── LanguageSwitch.svelte          # 言語切替
-        │   │   ├── LoginButton.svelte             # NIP-07ログインボタン
-        │   │   ├── ProfileAvatar.svelte           # ユーザーアバター表示
-        │   │   ├── ProfileBadgesManager.svelte    # プロフィールバッジ管理（kind 10008）
-        │   │   ├── ProgressiveImage.svelte        # プログレッシブ画像読み込み
-        │   │   ├── RelaySettings.svelte           # リレー設定UI
-        │   │   ├── SearchForm.svelte              # バッジ検索フォーム
-        │   │   ├── SearchResultPage.svelte        # 検索結果ページ
-        │   │   └── UserPage.svelte               # ユーザーバッジ一覧ページ
-        │   │
-        │   ├── stores/          # Svelteストア（writable/derived）
-        │   │   ├── auth.ts      # 認証状態管理（NIP-07）
-        │   │   ├── relay.ts     # リレー設定管理
-        │   │   └── i18n.ts      # 多言語対応ストア（日英）
-        │   │
-        │   ├── services/        # ビジネスロジック（クライアントサイド専用）
-        │   │   ├── nostr.ts                      # rx-nostrシングルトン・Nostr通信
-        │   │   ├── badgeDefinitionResolver.ts    # バッジ定義（kind 30009）3層キャッシュ
-        │   │   ├── badgeAwardeeResolver.ts       # バッジ受賞者（kind 8）3層キャッシュ
-        │   │   ├── badgeAwardResolver.ts         # 受け取ったバッジ（kind 8）3層キャッシュ
-        │   │   ├── profileBadgesResolver.ts      # プロフィールバッジ（kind 10008）3層キャッシュ
-        │   │   ├── profileResolver.ts            # ユーザープロフィール（kind 0）3層キャッシュ
-        │   │   ├── indexedDbCache.ts             # IndexedDBキャッシュDB管理
-        │   │   ├── indexedDbCache.spec.ts
-        │   │   └── profileBadgesResolver.spec.ts
-        │   │
-        │   └── utils/           # ユーティリティ
-        │       ├── badgeEventParser.ts           # kind 30009 イベントのパース
-        │       ├── badgeEventParser.spec.ts
-        │       ├── badgeTagBuilder.ts            # kind 30009 タグ配列の構築
-        │       ├── badgeTagBuilder.spec.ts
-        │       ├── imageUtils.ts                 # 画像処理
-        │       ├── imageUtils.spec.ts
-        │       ├── npubConverter.ts              # npub<->hex変換（カスタムbech32）
-        │       ├── npubConverter.spec.ts
-        │       ├── profileBadgesParser.ts        # kind 10008 イベントのパース
-        │       ├── profileBadgesParser.spec.ts
-        │       ├── userProfileParser.ts          # kind 0 イベントのパース
-        │       ├── userProfileParser.spec.ts
-        │       ├── validation.ts                 # バリデーション
-        │       └── validation.spec.ts
-        │
-        └── types/
-            └── nostr.d.ts       # NostrEvent・WindowNostr型定義
-```
+アプリ本体は `yakitofu-app/src/` 配下。主要ディレクトリ：
+
+- `routes/` — SvelteKitファイルベースルーティング（`+page.svelte` / `+page.server.ts`）
+- `lib/server/` — サーバーサイド専用（SSR用軽量Nostrクライアント `nostrFetch.ts`）
+- `lib/components/` — UIコンポーネント（PascalCase.svelte）
+- `lib/stores/` — Svelteストア（`auth.ts`, `relay.ts`, `i18n.ts`）
+- `lib/services/` — クライアント専用ビジネスロジック（rx-nostrシングルトン・3層キャッシュリゾルバー群）
+- `lib/utils/` — ユーティリティ・パーサー（テストは `.spec.ts`）
+- `types/nostr.d.ts` — `NostrEvent` / `WindowNostr` 型定義
+
+ルート直下：`docs/` にNIP仕様書・rx-nostrドキュメント、`.github/workflows/ci.yml` にCI設定。
 
 ## 重要な実装詳細
 
