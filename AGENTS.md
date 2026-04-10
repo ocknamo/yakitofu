@@ -86,68 +86,31 @@ npm run test         # テスト
 
 ### ルーティング（`src/routes/`）
 
-SvelteKitのファイルベースルーティングを使用。旧ハッシュURL（`#/badge/...`）は `+layout.svelte` でパスベースURLにリダイレクトされる。
+SvelteKitのファイルベースルーティング。旧ハッシュURL（`#/badge/...`）は `+layout.svelte` でパスベースURLにリダイレクト。
 
-| URL | ファイル | 説明 |
-|-----|---------|------|
-| `/` | `+page.svelte` | ホーム（バッジ作成・付与・設定タブ） |
-| `/badge/[id]` | `badge/[id]/+page.svelte` | バッジ詳細。`id` = `npub1xxx:encodedDTag` |
-| `/user/[npub]` | `user/[npub]/+page.svelte` | ユーザープロフィール |
-| `/search/[query]` | `search/[query]/+page.svelte` | バッジ検索結果 |
+| URL | 説明 |
+|-----|------|
+| `/` | ホーム（バッジ作成・付与・設定タブ） |
+| `/badge/[id]` | バッジ詳細。`id` = `npub1xxx:encodedDTag` |
+| `/user/[npub]` | ユーザープロフィール |
+| `/search/[query]` | バッジ検索結果 |
 
-**SSR（OGP対応）：**
-- `badge/[id]/+page.server.ts` — サーバー側でバッジ定義（kind 30009）を取得し、バッジ名・説明・画像をOGPメタタグに設定
-- `user/[npub]/+page.server.ts` — サーバー側でユーザープロフィール（kind 0）を取得し、ユーザー名・アイコンをOGPメタタグに設定
-- SSR取得失敗時（リレー接続エラー・タイムアウト）はデフォルトOGPにフォールバック
+`badge/[id]/+page.server.ts`、`user/[npub]/+page.server.ts` でSSR時にOGPメタタグを生成。取得失敗時はデフォルトOGPにフォールバック。
 
-### 主なアーキテクチャパターン
+### サービス層（`src/lib/services/`）
 
-**サーバーサイドユーティリティ（`src/lib/server/`）**：
-- `nostrFetch.ts` — Cloudflare Workers環境で動作する軽量WebSocket Nostrクライアント。ブラウザ固有API（IndexedDB・window.nostr）不使用。`fetchBadgeDefinitionSSR()` と `fetchUserProfileSSR()` を提供する
+クライアントサイド専用。`nostr.ts` が rx-nostr シングルトンとしてリレー通信を担う。各リゾルバー（`badgeDefinitionResolver.ts` 等）はメモリ → IndexedDB → リレーの3層キャッシュでデータを取得する。`indexedDbCache.ts` がキャッシュDBを管理。
 
-**Nostrサービス（`src/lib/services/`）**：クライアントサイド専用
-- `nostr.ts` — モジュールレベルのシングルトンとして `rxNostr` インスタンスを `connectionStrategy: 'aggressive'` で初期化。`publishEvent()` でイベント送信、`subscribeToEvents()` でライブ購読、`fetchPastEvents()` で過去イベント取得（backward req）。さらに `getUserBadgeDefinitions()`、`getBadgeDefinition()`、`getBadgeAwardees()`、`getUserReceivedBadgeAwards()`、`getUserProfiles()`、`searchBadgesByDTag()`、`waitForConnection()`、`cleanup()` も提供する
-- `badgeDefinitionResolver.ts` — メモリ → IndexedDB → リレーの3層キャッシュでバッジ定義（kind 30009）を取得する
-- `badgeAwardeeResolver.ts` — 同上の3層キャッシュでバッジ受賞者（kind 8: 特定バッジの授与先）を取得する
-- `badgeAwardResolver.ts` — 同上の3層キャッシュでユーザーが受け取ったバッジ（kind 8: 特定ユーザーへの授与）を取得する
-- `profileBadgesResolver.ts` — 同上の3層キャッシュでプロフィールバッジ（kind 10008）を取得する
-- `profileResolver.ts` — 同上の3層キャッシュ（24時間TTL）でユーザープロフィール（kind 0）を取得する
-- `indexedDbCache.ts` — 複数のオブジェクトストアを持つIndexedDBキャッシュDBを管理する
+### サーバーサイド（`src/lib/server/`）
 
-**ストア（`src/lib/stores/`）：**
-- `auth.ts` — `authStore` がNIP-07のログイン/ログアウトをラップし、`window.nostr` の存在を確認する
-- `relay.ts` — `relayStore` がデフォルト付きのリレーリストを管理。変更時は `+layout.svelte` の `$effect` によりリレーを再初期化する
-- `i18n.ts` — `languageStore` と派生した `t` 関数で英語/日本語の翻訳を管理。`localStorage` に言語設定を保存する
-
-**バッジイベントのフロー：**
-1. `BadgeDefinitionForm.svelte` が `buildBadgeTags()` でタグを構築 → kind 30009イベントを生成 → `window.nostr.signEvent()` で署名 → `publishEvent()` で公開
-2. `BadgeAwardForm.svelte` が受取人のnpubを `npubConverter.ts` でhexに変換 → kind 8イベントを生成 → 署名して公開
-3. 両フォームとも `getUserBadgeDefinitions()` のbackward req戦略で既存バッジを取得する
-
-**ユーティリティ（`src/lib/utils/`）：**
-- `badgeTagBuilder.ts` — kind 30009イベントの `tags` 配列を構築する
-- `badgeEventParser.ts` — kind 30009イベントを `BadgeDefinition` オブジェクトにパース。サムネイルはピクセル面積でソートされる
-- `profileBadgesParser.ts` — kind 10008イベントをパースし、プロフィールバッジ情報を取得する
-- `userProfileParser.ts` — kind 0イベントを `UserProfile` オブジェクトにパースする
-- `npubConverter.ts` — npub↔hex変換のカスタムbech32実装（外部ライブラリなし）
-- `validation.ts` — バッジID（空白なし任意Unicode）・URL・WebSocket URL・npub形式のバリデーション
-- `imageUtils.ts` — 画像サイズの取得とフォーマット
-
-**Nostr型定義（`src/types/nostr.d.ts`）**：`NostrEvent` と `WindowNostr` インターフェースを定義し、`Window` に `nostr?` プロパティを拡張する。
-
-### サーバーサイドコードの制約
-
-`src/lib/server/` および `+page.server.ts` では以下を使用禁止：
-- `rx-nostr`（クライアントサイド専用）
-- `IndexedDB`（ブラウザ専用）
-- `window.nostr`（ブラウザ専用）
+`nostrFetch.ts` は Cloudflare Workers 環境向けの軽量 WebSocket Nostr クライアント。`rx-nostr`・IndexedDB・`window.nostr` は使用不可。
 
 ### NIP準拠
 
-- バッジ定義：kind **30009**（パラメータ化可能な置換型）、`d` タグ = バッジID
-- バッジ付与：kind **8**、`a` タグでバッジ定義を参照、`p` タグが受取人のhex公開鍵
-- プロフィールバッジ：kind **10008**、受け取ったバッジをプロフィールに表示する
-- 認証：NIP-07ブラウザ拡張機能のみ（nos2x, Alby等）
+- kind **30009**: バッジ定義（`d` タグ = バッジID）
+- kind **8**: バッジ付与（`a` タグでバッジ参照、`p` タグが受取人hex公開鍵）
+- kind **10008**: プロフィールバッジ
+- 認証: NIP-07ブラウザ拡張機能のみ（nos2x, Alby等）
 
 ## ファイル構成
 
