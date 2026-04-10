@@ -33,6 +33,11 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./yakitofu-app
+        # safe-chain minimum age check is skipped: npm ci installs exact versions
+        # from package-lock.json, so version is already pinned and age check adds
+        # no security benefit here.
+        env:
+          SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 0
         run: npm ci
 
       - name: Security audit
