@@ -2,7 +2,7 @@ import type { BadgeDefinition } from '../utils/badgeEventParser';
 import type { UserProfile } from '../utils/userProfileParser';
 
 const DB_NAME = 'yakitofu-cache';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const MAX_ENTRIES = 100;
 
 interface CachedProfile extends UserProfile {
@@ -27,6 +27,14 @@ interface CachedReceivedBadgeAwards {
   key: string; // recipientPubkey
   recipientPubkey: string;
   badges: Array<BadgeDefinition & { pubkey: string; awardEventId: string }>;
+  cachedAt: number;
+}
+
+interface CachedProfileBadges {
+  key: string; // pubkey
+  pubkey: string;
+  /** null = kind 10008 event was fetched but doesn't exist for this user */
+  badges: Array<BadgeDefinition & { pubkey: string }> | null;
   cachedAt: number;
 }
 
@@ -67,6 +75,11 @@ function openCacheDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('receivedBadgeAwards')) {
         const receivedStore = db.createObjectStore('receivedBadgeAwards', { keyPath: 'key' });
         receivedStore.createIndex('cachedAt', 'cachedAt', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains('profileBadges')) {
+        const profileBadgesStore = db.createObjectStore('profileBadges', { keyPath: 'key' });
+        profileBadgesStore.createIndex('cachedAt', 'cachedAt', { unique: false });
       }
     };
 
@@ -374,6 +387,71 @@ export async function setCachedReceivedBadgeAwards(
   };
   await new Promise<void>((resolve, reject) => {
     const req = store.put(entry);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getCachedProfileBadges(pubkey: string): Promise<{
+  badges: Array<BadgeDefinition & { pubkey: string }> | null;
+  cachedAt: number;
+} | null> {
+  const db = await openCacheDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('profileBadges', 'readonly');
+    const req = tx.objectStore('profileBadges').get(pubkey);
+    req.onsuccess = () => {
+      const result = req.result as CachedProfileBadges | undefined;
+      if (!result) {
+        resolve(null);
+        return;
+      }
+      resolve({ badges: result.badges, cachedAt: result.cachedAt });
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function setCachedProfileBadges(
+  pubkey: string,
+  badges: Array<BadgeDefinition & { pubkey: string }> | null
+): Promise<void> {
+  const db = await openCacheDB();
+
+  const tx = db.transaction('profileBadges', 'readwrite');
+  const store = tx.objectStore('profileBadges');
+
+  const existing = await new Promise<CachedProfileBadges | undefined>((resolve, reject) => {
+    const req = store.get(pubkey);
+    req.onsuccess = () => resolve(req.result as CachedProfileBadges | undefined);
+    req.onerror = () => reject(req.error);
+  });
+
+  if (!existing) {
+    await evictOldestIfNeeded(tx, 'profileBadges');
+  }
+
+  const entry: CachedProfileBadges = {
+    key: pubkey,
+    pubkey,
+    badges,
+    cachedAt: Date.now(),
+  };
+  await new Promise<void>((resolve, reject) => {
+    const req = store.put(entry);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteCachedProfileBadges(pubkey: string): Promise<void> {
+  const db = await openCacheDB();
+
+  const tx = db.transaction('profileBadges', 'readwrite');
+  const store = tx.objectStore('profileBadges');
+  await new Promise<void>((resolve, reject) => {
+    const req = store.delete(pubkey);
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
