@@ -4,169 +4,144 @@ AIエージェント向けプロジェクトガイド
 
 ## 概要
 
-**Yakitofu（やきとーふ）** は、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/nips/blob/master/58.md)バッジシステムを実装したWebアプリケーションです。ユーザーはバッジを定義（kind 30009）し、他のユーザーにバッジを授与（kind 8）できます。
+**Yakitofu（やきとーふ）** は、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/nips/blob/master/58.md)バッジシステムを実装したWebアプリケーションです。ユーザーはバッジを定義（kind 30009）し、他のユーザーにバッジを授与（kind 8）できます。認証はNIP-07ブラウザ拡張機能（`window.nostr`）を使用します。
+
+アプリのディレクトリは `yakitofu-app/` です。以下のコマンドはすべてそのサブディレクトリで実行してください。
 
 ### 主な機能
+
 - **NIP-07認証**: ブラウザ拡張機能による安全なログイン
-- **バッジ定義作成**: カスタムバッジの作成と管理
-- **バッジ付与**: npub形式でユーザーにバッジを授与
+- **バッジ定義作成**: カスタムバッジの作成と管理（kind 30009）
+- **バッジ付与**: npub形式でユーザーにバッジを授与（kind 8）
+- **プロフィールバッジ管理**: 受け取ったバッジをプロフィールに表示（kind 10008）
+- **バッジ検索**: バッジID（dTag）またはnpubでバッジ・ユーザーを検索
+- **OGP対応**: バッジ・ユーザーページごとにSSRでOGPメタタグを動的生成
 - **リレー管理**: カスタムリレーサーバーの追加・削除
 - **多言語対応**: 日本語・英語の切り替え（i18nストア実装）
 - **画像プレビュー**: バッジ画像の検証とプレビュー（推奨1024x1024px）
 
-### プロジェクトの特徴
-- Svelte 5のrunes構文（`$state()`, `$derived()`, `$effect()`）を使用
-- rx-nostrによる非同期イベント処理
-- Tailwind CSS v4によるスタイリング
-- TypeScript完全対応
-
 ## 使用スタック
 
 ### コア技術
-- **フレームワーク**: Svelte 5.45.2 + TypeScript 5.9.3
-- **ビルドツール**: Vite 7.3.1
-- **スタイリング**: Tailwind CSS 4.1.18 + @tailwindcss/forms
+
+- **フレームワーク**: SvelteKit 2 + **@sveltejs/adapter-cloudflare** — SSR対応ファイルベースルーティング。Cloudflare Pages + Workersにデプロイ
+- **UIライブラリ**: Svelte 5（Runes構文: `$state()`, `$derived()`, `$effect()`）。`stores/` 配下は `writable`/`derived`（svelte/store）によるハイブリッド方式
+- **言語**: TypeScript（strictモード）
+- **ビルドツール**: Vite 7 + `@tailwindcss/vite` プラグイン
+- **スタイリング**: Tailwind CSS 4
 
 ### Nostr関連
-- **rx-nostr**: 3.6.2（Nostrクライアント・リレー通信）
-- **rx-nostr-crypto**: 3.1.3（暗号化・署名処理）
+
+- **rx-nostr**: RxJSベースのリアクティブなNostrリレー通信（クライアントサイドのみ）
+- **rx-nostr-crypto**: 暗号化・署名処理
 
 ### 開発ツール
-- **Biome**: 2.3.14（リント・フォーマット）
-- **svelte-check**: 4.3.4（型チェック）
-- **Vitest**: 4.0.18（テストランナー）
+
+- **Biome**: リント・フォーマット（ESLint/Prettierは使用しない）
+- **svelte-check**: Svelte型チェック
+- **Vitest**: テストランナー
 
 ### Node.js環境
-- Node.js 18以上推奨
-- npm パッケージマネージャー
 
-## 主要なドキュメントの場所
+- Node.js 22以上（Voltaで24.13.1を固定）
 
-### プロジェクトドキュメント
-```
-/yakitofu-app/README.md          # アプリケーションの基本説明・使い方
-/docs/SVELTE_INIT.md              # Svelteプロジェクトのセットアップ手順
-/AGENTS.md                        # 本ファイル（AI向けガイド）
-```
+## コマンド
 
-### NIP仕様書
-```
-/docs/nips/                       # Nostr Implementation Possibilities仕様
-  - NIP-58: バッジ定義・授与・表示の仕様
-  - NIP-07: ブラウザ拡張機能による署名
-```
+コマンド一覧は `yakitofu-app/package.json` の `scripts` を参照。すべて `cd yakitofu-app` 後に `npm run <script>` で実行する。
 
-### rx-nostr関連
-```
-/docs/rx-nostr/                   # rx-nostrライブラリのドキュメント
+## 変更後の検証（必須）
+
+コード変更後は以下をすべて実行して問題がないことを確認する：
+
+```bash
+cd yakitofu-app
+
+npm run check        # 型チェック
+npm run lint         # リント
+npm run build        # ビルド
+npm run test         # テスト
 ```
 
-### 設定ファイル
-```
-/yakitofu-app/package.json       # 依存関係とスクリプト
-/yakitofu-app/biome.json         # Biome設定（Svelte 5対応済み）
-/yakitofu-app/vite.config.ts     # Viteビルド設定
-/yakitofu-app/tsconfig.json      # TypeScript設定
-/yakitofu-app/svelte.config.js   # Svelte設定
-```
+## アーキテクチャ
+
+### ルーティング（`src/routes/`）
+
+SvelteKitのファイルベースルーティング。旧ハッシュURL（`#/badge/...`）は `+layout.svelte` でパスベースURLにリダイレクト。
+
+| URL | 説明 |
+|-----|------|
+| `/` | ホーム（バッジ作成・付与・設定タブ） |
+| `/badge/[id]` | バッジ詳細。`id` = `npub1xxx:encodedDTag` |
+| `/user/[npub]` | ユーザープロフィール |
+| `/search/[query]` | バッジ検索結果 |
+
+`badge/[id]/+page.server.ts`、`user/[npub]/+page.server.ts` でSSR時にOGPメタタグを生成。取得失敗時はデフォルトOGPにフォールバック。
+
+### サービス層（`src/lib/services/`）
+
+クライアントサイド専用。`nostr.ts` が rx-nostr シングルトンとしてリレー通信を担う。各リゾルバー（`badgeDefinitionResolver.ts` 等）はメモリ → IndexedDB → リレーの3層キャッシュでデータを取得する。`indexedDbCache.ts` がキャッシュDBを管理。
+
+### サーバーサイド（`src/lib/server/`）
+
+`nostrFetch.ts` は Cloudflare Workers 環境向けの軽量 WebSocket Nostr クライアント。`rx-nostr`・IndexedDB・`window.nostr` は使用不可。
+
+### NIP準拠
+
+- kind **30009**: バッジ定義（`d` タグ = バッジID）
+- kind **8**: バッジ付与（`a` タグでバッジ参照、`p` タグが受取人hex公開鍵）
+- kind **10008**: プロフィールバッジ
+- 認証: NIP-07ブラウザ拡張機能のみ（nos2x, Alby等）
 
 ## ファイル構成
 
-```
-yakitofu/
-├── AGENTS.md                     # 本ファイル
-├── .gitignore                    # Git除外設定（ルート）
-├── docs/                         # ドキュメント
-│   ├── SVELTE_INIT.md           # Svelteセットアップガイド
-│   ├── nips/                    # NIP仕様書
-│   └── rx-nostr/                # rx-nostrドキュメント
-│
-└── yakitofu-app/                # メインアプリケーション
-    ├── package.json             # 依存関係定義
-    ├── vite.config.ts           # Viteビルド設定
-    ├── tsconfig.json            # TypeScript設定
-    ├── biome.json               # Biome設定
-    ├── index.html               # エントリーポイント
-    ├── README.md                # アプリREADME
-    ├── LICENSE                  # MITライセンス
-    │
-    ├── public/                  # 静的ファイル
-    │   ├── vite.svg
-    │   └── yakitofu.svg         # アプリアイコン
-    │
-    └── src/                     # ソースコード
-        ├── main.ts              # アプリエントリーポイント
-        ├── app.css              # Tailwindインポート
-        ├── App.svelte           # ルートコンポーネント
-        │
-        ├── assets/              # SVGアセット
-        │   ├── delete.svg
-        │   └── lang.svg
-        │
-        ├── lib/
-        │   ├── components/      # UIコンポーネント
-        │   │   ├── BadgeAwardForm.svelte       # バッジ授与フォーム
-        │   │   ├── BadgeDefinitionForm.svelte  # バッジ作成フォーム
-        │   │   ├── BadgePage.svelte            # バッジ詳細ページ（受賞者一覧含む）
-        │   │   ├── ImageModal.svelte           # 画像拡大モーダル
-        │   │   ├── ImagePreview.svelte         # 画像プレビュー
-        │   │   ├── LanguageSwitch.svelte       # 言語切替
-        │   │   ├── LoginButton.svelte          # NIP-07ログインボタン
-        │   │   ├── ProfileAvatar.svelte        # ユーザーアバター表示
-        │   │   ├── ProgressiveImage.svelte     # プログレッシブ画像読み込み
-        │   │   ├── RelaySettings.svelte        # リレー設定UI
-        │   │   ├── SearchForm.svelte           # バッジ検索フォーム
-        │   │   ├── SearchResultPage.svelte     # 検索結果ページ
-        │   │   └── UserPage.svelte             # ユーザーバッジ一覧ページ
-        │   │
-        │   ├── stores/          # Svelteストア
-        │   │   ├── auth.ts      # 認証状態管理（NIP-07）
-        │   │   ├── relay.ts     # リレー設定管理
-        │   │   └── i18n.ts      # 多言語対応ストア
-        │   │
-        │   ├── services/        # ビジネスロジック
-        │   │   ├── nostr.ts                   # Nostr通信（rx-nostr）
-        │   │   ├── badgeDefinitionResolver.ts  # バッジ定義の3層キャッシュ取得
-        │   │   ├── badgeAwardeeResolver.ts     # バッジ受賞者の3層キャッシュ取得
-        │   │   ├── profileResolver.ts          # ユーザープロフィールの3層キャッシュ取得
-        │   │   └── indexedDbCache.ts           # IndexedDBキャッシュDB管理
-        │   │
-        │   └── utils/           # ユーティリティ
-        │       ├── badgeEventParser.ts  # kind 30009 イベントのパース
-        │       ├── badgeTagBuilder.ts   # kind 30009 タグ配列の構築
-        │       ├── imageUtils.ts        # 画像処理
-        │       ├── npubConverter.ts     # npub<->hex変換
-        │       ├── userProfileParser.ts # kind 0 イベントのパース
-        │       └── validation.ts        # バリデーション
-        │
-        └── types/               # 型定義
-            └── nostr.d.ts       # Nostr型定義（NIP-07 window.nostr）
-```
+アプリ本体は `yakitofu-app/src/` 配下。主要ディレクトリ：
+
+- `routes/` — SvelteKitファイルベースルーティング（`+page.svelte` / `+page.server.ts`）
+- `lib/server/` — サーバーサイド専用（SSR用軽量Nostrクライアント `nostrFetch.ts`）
+- `lib/components/` — UIコンポーネント（PascalCase.svelte）
+- `lib/stores/` — Svelteストア（`auth.ts`, `relay.ts`, `i18n.ts`）
+- `lib/services/` — クライアント専用ビジネスロジック（rx-nostrシングルトン・3層キャッシュリゾルバー群）
+- `lib/utils/` — ユーティリティ・パーサー（テストは `.spec.ts`）
+- `types/nostr.d.ts` — `NostrEvent` / `WindowNostr` 型定義
+
+ルート直下：`docs/` にNIP仕様書・rx-nostrドキュメント、`.github/workflows/ci.yml` にCI設定。
 
 ## 重要な実装詳細
 
 ### Svelte 5 Runesの使用
-本プロジェクトはSvelte 5の新しいrunes構文を使用しています：
-- `$state()`: リアクティブな状態管理
+
+コンポーネントはSvelte 5の新しいrunes構文を使用する：
+- `$state()`: リアクティブな状態管理（`let` での宣言が必須）
 - `$derived()`: 派生状態の計算
 - `$effect()`: 副作用の実行
 
-**注意**: Biome設定で以下のルールを無効化済み：
+`stores/` 配下のみ従来の `writable`/`derived`（svelte/store）APIを使用するハイブリッド方式。
+
+**Biome設定で以下のルールを無効化済み：**
 - `noUnusedImports`: テンプレート内の使用を検知できないため
 - `noUnusedVariables`: `$state()`変数の誤検知を防止
 - `useConst`: `$state()`は`let`での宣言が必須
 
 ### NIP-07認証フロー
+
 1. ユーザーがログインボタンをクリック
-2. `window.nostr.getPublicKey()`で公開鍵取得
-3. `auth.ts`ストアに認証情報を保存
-4. イベント署名時は`window.nostr.signEvent()`を使用
+2. `window.nostr.getPublicKey()` で公開鍵取得
+3. `auth.ts` ストアに認証情報を保存
+4. イベント署名時は `window.nostr.signEvent()` を使用
+
+### 3層キャッシュパターン
+
+サービス層（`badgeDefinitionResolver.ts` 等）はメモリ → IndexedDB → リレーの順でデータを取得する：
+1. **メモリキャッシュ**: `BehaviorSubject` ベースのインメモリキャッシュ（TTL付き）
+2. **IndexedDBキャッシュ**: `indexedDbCache.ts` による永続キャッシュ
+3. **リレー取得**: `nostr.ts` 経由でNostrリレーからフェッチ
 
 ### rx-nostrの基本パターン
+
 ```typescript
 import { createRxNostr } from 'rx-nostr';
 
-const rxNostr = createRxNostr();
+const rxNostr = createRxNostr({ connectionStrategy: 'aggressive' });
 rxNostr.setRelays(relays);
 
 // イベント送信
@@ -176,106 +151,30 @@ rxNostr.send(event).subscribe({
 });
 ```
 
-## タスク実行後のチェックコマンド
+### バリデーション
 
-### 基本チェック（必須）
-```bash
-cd yakitofu-app
-
-# 依存関係のインストール確認
-npm install
-
-# TypeScript型チェック
-npm run check
-
-# Biomeによるコード品質チェック
-npm run lint
-
-# Biomeフォーマットチェック
-npm run format:check
-
-# ビルドテスト
-npm run build
-```
-
-### 開発サーバー起動
-```bash
-cd yakitofu-app
-npm run dev
-# ブラウザで http://localhost:5173 を開く
-```
-
-### プレビュー（本番ビルドの確認）
-```bash
-cd yakitofu-app
-npm run preview
-```
-
-### テスト実行
-```bash
-cd yakitofu-app
-npm run test
-```
-
-### コードの自動修正
-```bash
-cd yakitofu-app
-
-# フォーマットとリント自動修正
-npm run format
-
-# またはリントのみ自動修正
-npm run lint:fix
-```
-
-## 開発時の注意事項
-
-### 1. インポートパスの拡張子
-- Svelteファイルは`.svelte`拡張子を明示
-- SVGファイルは`.svg`拡張子を明示
-
-### 2. Tailwind CSS v4の特殊構文
-- `src/app.css`で`@import "tailwindcss"`を使用
-- `@plugin "@tailwindcss/forms"`でフォームスタイル拡張
-
-### 3. NIP-07前提
-- ユーザーはNIP-07対応ブラウザ拡張機能が必要（nos2x, Alby等）
-- `window.nostr`が存在しない場合のエラーハンドリングを実装
-
-### 4. バリデーション
 - バッジID: 空白文字を含まない任意のUnicode文字（絵文字含む）、または空文字列
 - npub形式の検証: `utils/npubConverter.ts`
 - 画像サイズ: 1024x1024px推奨
 
-## よくあるタスク
+## コードスタイル（Biome）
 
-### 新しいコンポーネント追加
-```bash
-# 場所: /yakitofu-app/src/lib/components/
-# 命名: PascalCase.svelte
-# Svelte 5のrunes構文を使用
-```
+- シングルクォート、インデント2スペース、最大行幅100文字、末尾カンマ（ES5スタイル）
+- インポートはBiome assistにより自動整理される
+- テストファイルは `.spec.ts` 拡張子を使用
 
-### 新しいストア追加
-```bash
-# 場所: /yakitofu-app/src/lib/stores/
-# writable, derived等のsvelte/storeを使用
-```
+## デプロイ
 
-### 多言語対応の追加
-```typescript
-// src/lib/stores/i18n.ts を編集
-// 日本語と英語の両方を追加
-```
+Cloudflare Pages + Workersにデプロイ。GitHubリポジトリとCloudflare Pagesを連携し、`main` ブランチへのpush時に自動ビルド・デプロイ。
 
-### リレーのデフォルト変更
-```typescript
-// src/lib/stores/relay.ts の defaultRelays を編集
-```
+**Cloudflare Pagesビルド設定：**
+- Root directory: `yakitofu-app`
+- Build command: `npm run build`
+- Build output directory: `.svelte-kit/cloudflare`
+
+CIはNode.js 22.xと24.xで実行。Voltaが `package.json` でNode.js 24.13.1を固定している。
 
 ---
 
-**最終更新**: 2026/03/07
-**対象バージョン**: yakitofu-app v0.0.0  
-**Svelte**: 5.45.2  
+**最終更新**: 2026/04/10
 **Node.js**: 22+
