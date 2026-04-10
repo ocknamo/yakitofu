@@ -104,7 +104,7 @@ async function save(): Promise<void> {
     await publishEvent(signed30008);
 
     // Invalidate cache so UserPage refetches the updated kind 10008
-    invalidateProfileBadgesCache(pubkey);
+    await invalidateProfileBadgesCache(pubkey);
 
     saveSuccess = true;
     onSaved?.();

@@ -13,6 +13,12 @@ vi.mock('./badgeDefinitionResolver', () => ({
   resolveBadgeDefinition: vi.fn(),
 }));
 
+vi.mock('./indexedDbCache', () => ({
+  getCachedProfileBadges: vi.fn().mockResolvedValue(null),
+  setCachedProfileBadges: vi.fn().mockResolvedValue(undefined),
+  deleteCachedProfileBadges: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { resolveBadgeDefinition } from './badgeDefinitionResolver';
 import { getProfileBadges } from './nostr';
 import { invalidateProfileBadgesCache, resolveProfileBadges } from './profileBadgesResolver';
@@ -76,6 +82,10 @@ async function resolveWith(
     });
   });
 
+  // Flush microtasks so the (mocked) IDB lookup resolves and the relay
+  // subscription inside relayFetch$ is set up before we emit events.
+  await new Promise<void>((r) => setTimeout(r, 0));
+
   // Emit events AFTER subscription — avoids TDZ on relaySubscription const
   for (const event of events) {
     relay$.next({ event, from: 'wss://relay.test' });
@@ -91,8 +101,8 @@ async function resolveWith(
 // ---------------------------------------------------------------------------
 
 describe('resolveProfileBadges', () => {
-  beforeEach(() => {
-    invalidateProfileBadgesCache(PUBKEY);
+  beforeEach(async () => {
+    await invalidateProfileBadgesCache(PUBKEY);
     vi.mocked(resolveBadgeDefinition).mockReturnValue(of(mockBadgeDef) as any);
   });
 
