@@ -19,9 +19,16 @@ export function parseUserProfile(event: NostrEvent): UserProfile {
 
   try {
     const content = JSON.parse(event.content);
-    name = content.name || '';
-    displayName = content.display_name || content.displayName || '';
-    picture = content.picture || '';
+    if (content && typeof content === 'object') {
+      name = typeof content.name === 'string' ? content.name : '';
+      displayName =
+        typeof content.display_name === 'string'
+          ? content.display_name
+          : typeof content.displayName === 'string'
+            ? content.displayName
+            : '';
+      picture = typeof content.picture === 'string' ? content.picture : '';
+    }
   } catch {
     // Fallback to empty strings if content is not valid JSON
   }

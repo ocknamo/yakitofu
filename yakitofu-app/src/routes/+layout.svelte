@@ -26,7 +26,9 @@ onMount(() => {
     authStore.checkExtension();
   }, 100);
 
-  createConsoleViewer({ show: 'iframe' });
+  if (import.meta.env.DEV) {
+    createConsoleViewer({ show: 'iframe' });
+  }
 
   // Redirect old hash-based URLs to path-based URLs
   const hash = window.location.hash;

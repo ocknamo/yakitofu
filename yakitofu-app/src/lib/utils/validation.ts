@@ -8,15 +8,20 @@ export function isValidBadgeId(id: string): boolean {
 
 export function isValidUrl(url: string): boolean {
   try {
-    new URL(url);
-    return true;
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
   }
 }
 
 export function isValidWebSocketUrl(url: string): boolean {
-  return url.startsWith('wss://') || url.startsWith('ws://');
+  try {
+    const parsed = new URL(url);
+    return (parsed.protocol === 'wss:' || parsed.protocol === 'ws:') && parsed.hostname.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function isValidNpub(npub: string): boolean {

@@ -9,6 +9,18 @@ import type { UserProfile } from '$lib/utils/userProfileParser';
 import { parseUserProfile } from '$lib/utils/userProfileParser';
 import type { NostrEvent } from '../../types/nostr';
 
+function isValidNostrEvent(obj: unknown): obj is NostrEvent {
+  if (!obj || typeof obj !== 'object') return false;
+  const e = obj as Record<string, unknown>;
+  return (
+    typeof e.id === 'string' &&
+    typeof e.pubkey === 'string' &&
+    typeof e.kind === 'number' &&
+    typeof e.content === 'string' &&
+    Array.isArray(e.tags)
+  );
+}
+
 // Same defaults as relay.ts
 const SSR_RELAYS = [
   'wss://yabu.me',
@@ -57,7 +69,9 @@ function fetchFromRelay(
       return;
     }
 
-    const subId = Math.random().toString(36).slice(2, 10);
+    const subId = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
 
     ws.onopen = () => {
       ws.send(JSON.stringify(['REQ', subId, filter]));
@@ -68,7 +82,7 @@ function fetchFromRelay(
         const msg = JSON.parse(event.data as string) as unknown[];
         if (!Array.isArray(msg)) return;
         if (msg[0] === 'EVENT' && msg[1] === subId) {
-          settle(msg[2] as NostrEvent);
+          if (isValidNostrEvent(msg[2])) settle(msg[2]);
         } else if (msg[0] === 'EOSE' && msg[1] === subId) {
           settle(null);
         }

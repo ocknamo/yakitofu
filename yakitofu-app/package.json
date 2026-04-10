@@ -43,5 +43,8 @@
   },
   "volta": {
     "node": "24.13.1"
+  },
+  "overrides": {
+    "cookie": "^0.7.0"
   }
 }

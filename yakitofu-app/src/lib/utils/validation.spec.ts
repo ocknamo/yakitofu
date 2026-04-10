@@ -67,9 +67,11 @@ describe('validation', () => {
       expect(isValidUrl('https://example.com:8080')).toBe(true);
     });
 
-    it('should accept other valid URL protocols', () => {
-      expect(isValidUrl('ftp://example.com')).toBe(true);
-      expect(isValidUrl('file:///path/to/file')).toBe(true);
+    it('should reject non-http/https URL protocols', () => {
+      expect(isValidUrl('ftp://example.com')).toBe(false);
+      expect(isValidUrl('file:///path/to/file')).toBe(false);
+      expect(isValidUrl('javascript:alert(1)')).toBe(false);
+      expect(isValidUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
     });
 
     it('should reject invalid URLs', () => {

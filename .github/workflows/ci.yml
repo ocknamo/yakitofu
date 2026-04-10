@@ -28,9 +28,21 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './yakitofu-app/package-lock.json'
 
+      - name: Install safe-chain
+        run: curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh -s -- --ci
+
       - name: Install dependencies
         working-directory: ./yakitofu-app
+        # safe-chain minimum age check is skipped: npm ci installs exact versions
+        # from package-lock.json, so version is already pinned and age check adds
+        # no security benefit here.
+        env:
+          SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS: 0
         run: npm ci
+
+      - name: Security audit
+        working-directory: ./yakitofu-app
+        run: npm audit --audit-level=high
 
       - name: Check formatting
         working-directory: ./yakitofu-app
