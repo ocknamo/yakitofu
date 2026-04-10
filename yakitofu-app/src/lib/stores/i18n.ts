@@ -375,8 +375,8 @@ const translations: Translations = {
 };
 
 function createI18nStore() {
-  const storedLang =
-    typeof window !== 'undefined' ? (localStorage.getItem('language') as Language) || 'en' : 'en';
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('language') : null;
+  const storedLang: Language = stored === 'en' || stored === 'ja' ? stored : 'en';
 
   const { subscribe, set } = writable<Language>(storedLang);
 

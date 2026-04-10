@@ -27,7 +27,6 @@ export function initializeRelays(
 
   // Always subscribe to track connection state (also used by waitForConnection)
   connectionStateSubscription = rxNostr.createConnectionStateObservable().subscribe((packet) => {
-    console.log('Connection state packet:', packet);
     if (packet.state === 'connected') _connected = true;
     if (onConnectionChange) {
       relays.forEach((relay) => {
@@ -45,9 +44,7 @@ export async function publishEvent(event: NostrEvent): Promise<void> {
     }, 10000);
 
     rxNostr.send(event).subscribe({
-      next: (packet) => {
-        console.log('Event published:', packet);
-      },
+      next: (_packet) => {},
       error: (error: Error) => {
         clearTimeout(timeoutId);
         reject(error);
