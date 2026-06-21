@@ -1,2 +1,28 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+
+/*
+ * Nosskey signing iframe host container. The NosskeyIframeClient appends its
+ * iframe here and toggles the iframe's `display` between none/block itself.
+ * The container stays mounted but is click-through (pointer-events: none) while
+ * the iframe is hidden; the iframe re-enables pointer events when shown.
+ */
+.nosskey-iframe-container {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.nosskey-iframe-container iframe {
+  pointer-events: auto;
+  width: min(420px, 92vw);
+  height: min(640px, 90vh);
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+}

@@ -22,8 +22,8 @@ const translations: Translations = {
 
   // Auth
   login: {
-    en: 'Login by NIP-07',
-    ja: 'ログイン(NIP-07)',
+    en: 'Login',
+    ja: 'ログイン',
   },
   logout: {
     en: 'Logout',
@@ -36,6 +36,38 @@ const translations: Translations = {
   loggedInAs: {
     en: 'Logged in as',
     ja: 'ログイン中',
+  },
+  loginModalTitle: {
+    en: 'Choose login method',
+    ja: 'ログイン方法を選択',
+  },
+  loginWithNip07: {
+    en: 'Login with NIP-07 extension',
+    ja: 'NIP-07拡張機能でログイン',
+  },
+  loginWithNosskey: {
+    en: 'Login with nosskey.app',
+    ja: 'nosskey.appでログイン',
+  },
+  loginNosskeyDescription: {
+    en: 'Sign in with a passkey account from nosskey.app. No browser extension required.',
+    ja: 'nosskey.appのパスキーアカウントでログインします。ブラウザ拡張機能は不要です。',
+  },
+  cancel: {
+    en: 'Cancel',
+    ja: 'キャンセル',
+  },
+  loginFailed: {
+    en: 'Login failed',
+    ja: 'ログインに失敗しました',
+  },
+  nosskeyNoKey: {
+    en: 'No passkey found. Please create an account at nosskey.app first.',
+    ja: 'パスキーが見つかりません。先にnosskey.appでアカウントを作成してください。',
+  },
+  nosskeyUserRejected: {
+    en: 'Login was cancelled.',
+    ja: 'ログインがキャンセルされました。',
   },
 
   // Tabs

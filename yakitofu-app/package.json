@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "console-daijin": "^0.1.5",
+    "nosskey-iframe": "^0.1.0",
     "rx-nostr": "^3.6.2",
     "rx-nostr-crypto": "^3.1.3"
   },

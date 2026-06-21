@@ -7,6 +7,7 @@ import {
   resolveBadgeDefinitionsByPubkey,
 } from '../services/badgeDefinitionResolver';
 import { publishEvent } from '../services/nostr';
+import { signEvent } from '../services/signer';
 import { authStore } from '../stores/auth';
 import { t } from '../stores/i18n';
 import { npubToHex } from '../utils/npubConverter';
@@ -109,8 +110,8 @@ async function handleSubmit(e: Event) {
       content: '',
     };
 
-    // Sign with NIP-07
-    const signedEvent = await window.nostr!.signEvent(event);
+    // Sign with the active signer (NIP-07 or Nosskey)
+    const signedEvent = await signEvent(event);
 
     // Publish to relays
     await publishEvent(signedEvent);
