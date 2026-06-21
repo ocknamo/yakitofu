@@ -4,6 +4,7 @@ import { onDestroy } from 'svelte';
 import type { NostrEvent } from '../../types/nostr';
 import { resolveBadgeDefinitionsByPubkey } from '../services/badgeDefinitionResolver';
 import { publishEvent } from '../services/nostr';
+import { signEvent } from '../services/signer';
 import { authStore } from '../stores/auth';
 import { t } from '../stores/i18n';
 import type { BadgeDefinition } from '../utils/badgeEventParser';
@@ -172,7 +173,7 @@ async function handleSubmit(e: Event) {
       content: '',
     };
 
-    const signedEvent = await window.nostr!.signEvent(event);
+    const signedEvent = await signEvent(event);
     await publishEvent(signedEvent);
 
     message = editMode ? 'Badge updated successfully!' : $t('badgeCreated');

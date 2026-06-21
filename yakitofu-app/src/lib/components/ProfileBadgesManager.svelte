@@ -1,8 +1,11 @@
 <script lang="ts">
+import { get } from 'svelte/store';
 import type { ReceivedBadge } from '../services/badgeAwardResolver';
 import type { BadgeDefinitionWithPubkey } from '../services/badgeDefinitionResolver';
 import { publishEvent } from '../services/nostr';
 import { invalidateProfileBadgesCache } from '../services/profileBadgesResolver';
+import { signEvent } from '../services/signer';
+import { authStore } from '../stores/auth';
 import { t } from '../stores/i18n';
 import { hexToNpub } from '../utils/npubConverter';
 
@@ -63,7 +66,7 @@ function moveDown(index: number): void {
 }
 
 async function save(): Promise<void> {
-  if (!window.nostr) return;
+  if (!get(authStore).isLoggedIn) return;
 
   saving = true;
   saveError = '';
@@ -89,7 +92,7 @@ async function save(): Promise<void> {
       content: '',
     };
 
-    const signed10008 = await window.nostr.signEvent(event10008);
+    const signed10008 = await signEvent(event10008);
     await publishEvent(signed10008);
 
     // Tombstone old kind 30008 (d=profile_badges) to help relays clean up legacy data.
@@ -100,7 +103,7 @@ async function save(): Promise<void> {
       tags: [['d', 'profile_badges']],
       content: '',
     };
-    const signed30008 = await window.nostr.signEvent(event30008);
+    const signed30008 = await signEvent(event30008);
     await publishEvent(signed30008);
 
     // Invalidate cache so UserPage refetches the updated kind 10008

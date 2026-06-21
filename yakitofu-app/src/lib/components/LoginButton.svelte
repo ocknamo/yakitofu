@@ -4,23 +4,11 @@ import { authStore } from '../stores/auth';
 import { t } from '../stores/i18n';
 import { hexToNpub } from '../utils/npubConverter';
 import type { UserProfile } from '../utils/userProfileParser';
+import LoginModal from './LoginModal.svelte';
 import ProfileAvatar from './ProfileAvatar.svelte';
 
-let loading = $state(false);
-let error = $state('');
 let profile: UserProfile | null = $state(null);
-
-async function handleLogin() {
-  loading = true;
-  error = '';
-  try {
-    await authStore.login();
-  } catch (e) {
-    error = e instanceof Error ? e.message : 'Login failed';
-  } finally {
-    loading = false;
-  }
-}
+let modalOpen = $state(false);
 
 function handleLogout() {
   profile = null;
@@ -43,11 +31,7 @@ $effect(() => {
 });
 </script>
 
-{#if !$authStore.hasNostrExtension}
-  <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-    <p class="text-yellow-800 text-sm md:text-base">{$t('noExtension')}</p>
-  </div>
-{:else if $authStore.isLoggedIn}
+{#if $authStore.isLoggedIn}
   <div class="flex items-center gap-3">
     <!-- Avatar link -->
     <a href="/user/{npubKey}" class="shrink-0">
@@ -84,14 +68,14 @@ $effect(() => {
 {:else}
   <div>
     <button
-      onclick={handleLogin}
-      disabled={loading}
+      onclick={() => {
+        modalOpen = true;
+      }}
       class="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors text-sm md:text-base font-medium"
     >
-      {loading ? '...' : $t('login')}
+      {$t('login')}
     </button>
-    {#if error}
-      <p class="mt-2 text-red-600 text-sm">{error}</p>
-    {/if}
   </div>
 {/if}
+
+<LoginModal bind:open={modalOpen} />
