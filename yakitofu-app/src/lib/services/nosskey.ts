@@ -35,7 +35,8 @@ export async function getNosskeyClient(): Promise<NosskeyIframeClient> {
     const c = new NosskeyIframeClient({
       iframeUrl: NOSSKEY_IFRAME_URL,
       container,
-      theme: 'auto',
+      // Yakitofu uses a light UI, so pin the iframe to the neutral-light theme.
+      theme: 'neutral-light',
       lang: lang === 'ja' || lang === 'en' ? lang : 'auto',
     });
     await c.ready();
