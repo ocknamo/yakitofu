@@ -43,7 +43,7 @@ AIエージェント向けプロジェクトガイド
 
 ### Node.js環境
 
-- Node.js 22以上（Voltaで24.13.1を固定）
+- Node.js 22以上（Voltaで24.22.1を固定）
 
 ## コマンド
 
@@ -172,7 +172,7 @@ Cloudflare Pages + Workersにデプロイ。GitHubリポジトリとCloudflare P
 - Build command: `npm run build`
 - Build output directory: `.svelte-kit/cloudflare`
 
-CIはNode.js 22.xと24.xで実行。Voltaが `package.json` でNode.js 24.13.1を固定している。
+CIはNode.js 22.xと24.xで実行。Voltaが `package.json` でNode.js 24.22.1を固定している。
 
 ---
 

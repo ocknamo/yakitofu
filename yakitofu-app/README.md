@@ -35,7 +35,7 @@ Yakitofuは、Nostrプロトコルの[NIP-58](https://github.com/nostr-protocol/
 
 ### 前提条件
 
-- Node.js 22以上（Voltaで24.13.1を固定）
+- Node.js 22以上（Voltaで24.22.1を固定）
 - NIP-07対応のNostr拡張機能（例: nos2x, Alby, etc.）
 
 ### インストール
