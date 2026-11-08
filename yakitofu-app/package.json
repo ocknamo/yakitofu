@@ -47,5 +47,10 @@
   },
   "overrides": {
     "cookie": "^0.7.0"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "fsevents": false,
+    "workerd": false
   }
 }
