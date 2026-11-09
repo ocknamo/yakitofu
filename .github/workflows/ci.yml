@@ -28,6 +28,8 @@ jobs:
           check-latest: true
           cache: 'npm'
           cache-dependency-path: './yakitofu-app/package-lock.json'
+      - name: Use npm 12
+        run: npm install -g npm@12.2.2
 
       - name: Install safe-chain
         run: curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh -s -- --ci
